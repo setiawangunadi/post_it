@@ -2,34 +2,48 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../injection_container.dart';
+import '../../../friends/domain/entities/friend.dart';
+import '../../../friends/presentation/bloc/friends_bloc.dart';
+import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
 import '../bloc/scanner/receipt_scanner_bloc.dart';
+import '../utils/pick_receipt_image.dart';
 import '../widgets/receipt_item_tile.dart';
 
 class ReceiptScannerPage extends StatelessWidget {
-  const ReceiptScannerPage({super.key});
+  /// Image already picked (e.g. via the Home page's Scan button, which shows
+  /// the camera/gallery sheet before navigating here). When present, scanning
+  /// starts immediately instead of prompting for a source again.
+  final String? imagePath;
+
+  const ReceiptScannerPage({super.key, this.imagePath});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ReceiptScannerBloc>(),
-      child: const _ReceiptScannerView(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => sl<ReceiptScannerBloc>()),
+        BlocProvider(
+          create: (_) => sl<FriendsBloc>()..add(const LoadFriends()),
+        ),
+      ],
+      child: _ReceiptScannerView(imagePath: imagePath),
     );
   }
 }
 
 class _ReceiptScannerView extends StatefulWidget {
-  const _ReceiptScannerView();
+  final String? imagePath;
+  const _ReceiptScannerView({this.imagePath});
 
   @override
   State<_ReceiptScannerView> createState() => _ReceiptScannerViewState();
 }
 
 class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
-  final _picker = ImagePicker();
   final _merchantController = TextEditingController();
   final _serviceChargeController = TextEditingController();
   final _taxController = TextEditingController();
@@ -37,6 +51,20 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
 
   Receipt? _draft;
   List<ReceiptItem> _editableItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.imagePath != null) {
+        context
+            .read<ReceiptScannerBloc>()
+            .add(ScanReceiptRequested(widget.imagePath!));
+      } else {
+        _pickAndScan();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -47,10 +75,10 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    final picked = await _picker.pickImage(source: source, imageQuality: 90);
-    if (picked == null || !mounted) return;
-    context.read<ReceiptScannerBloc>().add(ScanReceiptRequested(picked.path));
+  Future<void> _pickAndScan() async {
+    final imagePath = await pickReceiptImage(context);
+    if (imagePath == null || !mounted) return;
+    context.read<ReceiptScannerBloc>().add(ScanReceiptRequested(imagePath));
   }
 
   double get _itemsTotal =>
@@ -92,10 +120,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
                   state.receipt.adjustment?.toStringAsFixed(0) ?? '';
             });
           } else if (state is ScannerSaved) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Receipt saved')),
-            );
-            Navigator.of(context).pop();
+            context.pushReplacement('/payment-summary', extra: state.receipt);
           } else if (state is ScannerError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
@@ -110,35 +135,29 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
               (_draft != null && state is! ScannerInitial)) {
             return _buildReview();
           }
-          return _buildPickButtons(context);
+          return _buildPickPrompt(context);
         },
       ),
     );
   }
 
-  Widget _buildPickButtons(BuildContext context) {
+  Widget _buildPickPrompt(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton.icon(
-            onPressed: () => _pickImage(ImageSource.camera),
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Take Photo'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _pickImage(ImageSource.gallery),
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Choose from Gallery'),
-          ),
-        ],
+      child: ElevatedButton.icon(
+        onPressed: _pickAndScan,
+        icon: const Icon(Icons.add_a_photo_outlined),
+        label: const Text('Choose Photo Source'),
       ),
     );
   }
 
   Widget _buildReview() {
     final draft = _draft!;
+    final friends = switch (context.watch<FriendsBloc>().state) {
+      FriendsLoaded(:final friends) => friends,
+      _ => <Friend>[],
+    };
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -160,6 +179,9 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
           return ReceiptItemTile(
             key: ValueKey(index),
             item: entry.value,
+            friends: friends,
+            onAddFriend: (name) =>
+                context.read<FriendsBloc>().add(AddFriendRequested(name)),
             onChanged: (updated) =>
                 setState(() => _editableItems[index] = updated),
             onDelete: () => setState(() => _editableItems.removeAt(index)),
@@ -224,6 +246,31 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             ),
           ],
         ),
+        if (_editableItems.any((i) => i.assignments.isNotEmpty)) ...[
+          const SizedBox(height: 24),
+          Text(
+            'Split by friend',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const Divider(),
+          ...calculateFriendShares(
+            _editableItems,
+            serviceCharge: double.tryParse(_serviceChargeController.text),
+            tax: double.tryParse(_taxController.text),
+            adjustment: double.tryParse(_adjustmentController.text),
+          ).map(
+            (share) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(share.friendName),
+                  Text(share.total.toStringAsFixed(0)),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: _save,

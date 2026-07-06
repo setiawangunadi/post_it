@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../injection_container.dart';
+import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
 import '../bloc/history/receipt_history_bloc.dart';
 
@@ -83,21 +84,21 @@ class _ReceiptTile extends StatelessWidget {
         trailing: Text(displayTotal.toStringAsFixed(0)),
         onTap: () => showModalBottomSheet(
           context: context,
-          builder: (_) => _ReceiptDetailSheet(receipt: receipt),
+          builder: (_) => ReceiptDetailSheet(receipt: receipt),
         ),
       ),
     );
   }
 }
 
-class _ReceiptDetailSheet extends StatelessWidget {
+class ReceiptDetailSheet extends StatelessWidget {
   final Receipt receipt;
-  const _ReceiptDetailSheet({required this.receipt});
+  const ReceiptDetailSheet({super.key, required this.receipt});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -114,7 +115,14 @@ class _ReceiptDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text('${item.name} x${item.quantity}')),
+                    Expanded(
+                      child: Text(
+                        item.assignments.isNotEmpty
+                            ? '${item.name} x${item.quantity}  ·  '
+                                '${item.assignments.entries.map((e) => '${e.key} x${e.value}').join(', ')}'
+                            : '${item.name} x${item.quantity}',
+                      ),
+                    ),
                     Text(item.lineTotal.toStringAsFixed(0)),
                   ],
                 ),
@@ -167,6 +175,31 @@ class _ReceiptDetailSheet extends StatelessWidget {
                 ),
               ],
             ),
+            if (receipt.items.any((i) => i.assignments.isNotEmpty)) ...[
+              const SizedBox(height: 20),
+              Text(
+                'Split by friend',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const Divider(),
+              ...calculateFriendShares(
+                receipt.items,
+                serviceCharge: receipt.serviceCharge,
+                tax: receipt.tax,
+                adjustment: receipt.adjustment,
+              ).map(
+                (share) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(share.friendName),
+                      Text(share.total.toStringAsFixed(0)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

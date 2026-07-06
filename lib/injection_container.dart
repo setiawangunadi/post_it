@@ -17,6 +17,12 @@ import 'package:post_it/features/receipt_scanner/domain/usecases/save_receipt.da
 import 'package:post_it/features/receipt_scanner/domain/usecases/scan_receipt.dart';
 import 'package:post_it/features/receipt_scanner/presentation/bloc/history/receipt_history_bloc.dart';
 import 'package:post_it/features/receipt_scanner/presentation/bloc/scanner/receipt_scanner_bloc.dart';
+import 'package:post_it/features/friends/data/datasources/friend_local_datasource.dart';
+import 'package:post_it/features/friends/data/repositories/friend_repository_impl.dart';
+import 'package:post_it/features/friends/domain/repositories/friend_repository.dart';
+import 'package:post_it/features/friends/domain/usecases/add_friend.dart';
+import 'package:post_it/features/friends/domain/usecases/get_friends.dart';
+import 'package:post_it/features/friends/presentation/bloc/friends_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -63,5 +69,22 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<ReceiptLocalDataSource>(
     () => ReceiptLocalDataSourceImpl(box: receiptsBox),
+  );
+
+  // ── Friends ─────────────────────────────────────────────
+  final friendsBox = await Hive.openBox<String>(
+    FriendLocalDataSourceImpl.boxName,
+  );
+
+  sl.registerFactory(
+    () => FriendsBloc(getFriends: sl(), addFriend: sl()),
+  );
+  sl.registerLazySingleton(() => GetFriends(sl()));
+  sl.registerLazySingleton(() => AddFriend(sl()));
+  sl.registerLazySingleton<FriendRepository>(
+    () => FriendRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton<FriendLocalDataSource>(
+    () => FriendLocalDataSourceImpl(box: friendsBox),
   );
 }

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Post It</string>
+	<string>PuteIt</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>post_it</string>
+	<string>puteit</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -46,8 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Post It needs camera access to take photos of shopping receipts.</string>
+	<string>PuteIt needs camera access to take photos of shopping receipts.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Post It needs photo library access to select shopping receipt images.</string>
+	<string>PuteIt needs photo library access to select shopping receipt images.</string>
 </dict>
 </plist>

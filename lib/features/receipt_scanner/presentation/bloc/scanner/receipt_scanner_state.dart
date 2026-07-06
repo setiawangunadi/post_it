@@ -17,7 +17,12 @@ class ScannerReview extends ReceiptScannerState {
   List<Object?> get props => [receipt];
 }
 
-class ScannerSaved extends ReceiptScannerState {}
+class ScannerSaved extends ReceiptScannerState {
+  final Receipt receipt;
+  const ScannerSaved(this.receipt);
+  @override
+  List<Object?> get props => [receipt];
+}
 
 class ScannerError extends ReceiptScannerState {
   final String message;

@@ -1,4 +1,4 @@
-package com.wsn.post_it
+package com.wsn.puteit
 
 import io.flutter.embedding.android.FlutterActivity
 

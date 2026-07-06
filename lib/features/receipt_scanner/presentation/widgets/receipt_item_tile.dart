@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../../friends/domain/entities/friend.dart';
+import '../../../friends/presentation/widgets/friend_picker.dart';
 import '../../domain/entities/receipt.dart';
 
 class ReceiptItemTile extends StatefulWidget {
   final ReceiptItem item;
+  final List<Friend> friends;
   final ValueChanged<ReceiptItem> onChanged;
+  final ValueChanged<String> onAddFriend;
   final VoidCallback onDelete;
 
   const ReceiptItemTile({
     super.key,
     required this.item,
+    required this.friends,
     required this.onChanged,
+    required this.onAddFriend,
     required this.onDelete,
   });
 
@@ -42,7 +48,7 @@ class _ReceiptItemTileState extends State<ReceiptItemTile> {
 
   void _emitChange() {
     widget.onChanged(
-      ReceiptItem(
+      widget.item.copyWith(
         name: _nameController.text,
         quantity: int.tryParse(_qtyController.text) ?? 1,
         price: double.tryParse(_priceController.text) ?? 0,
@@ -54,41 +60,58 @@ class _ReceiptItemTileState extends State<ReceiptItemTile> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 4,
-            child: TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Item'),
-              onChanged: (_) => _emitChange(),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Item'),
+                  onChanged: (_) => _emitChange(),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: widget.onDelete,
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: TextField(
-              controller: _qtyController,
-              decoration: const InputDecoration(labelText: 'Qty'),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => _emitChange(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: _priceController,
-              decoration: const InputDecoration(labelText: 'Price'),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => _emitChange(),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: widget.onDelete,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _qtyController,
+                  decoration: const InputDecoration(labelText: 'Qty'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => _emitChange(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(labelText: 'Price'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => _emitChange(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FriendPicker(
+                friends: widget.friends,
+                quantity: widget.item.quantity,
+                assignments: widget.item.assignments,
+                onAddFriend: widget.onAddFriend,
+                onAssignmentsChanged: (assignments) => widget.onChanged(
+                  widget.item.copyWith(assignments: assignments),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -15,7 +15,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'post_it Staging',
+      title: 'PuteIt Staging',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
     );

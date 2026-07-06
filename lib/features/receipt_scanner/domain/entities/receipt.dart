@@ -5,24 +5,42 @@ class ReceiptItem extends Equatable {
   final int quantity;
   final double price;
 
+  /// How many units of [quantity] each friend is assigned, e.g. a qty-2 item
+  /// split as `{'Budi': 1, 'Sinta': 1}`. Units not covered by any entry here
+  /// are unassigned. Values sum to at most [quantity].
+  final Map<String, int> assignments;
+
   const ReceiptItem({
     required this.name,
     this.quantity = 1,
     required this.price,
+    this.assignments = const {},
   });
 
   double get lineTotal => price * quantity;
 
-  ReceiptItem copyWith({String? name, int? quantity, double? price}) {
+  int get assignedQuantity =>
+      assignments.values.fold(0, (sum, qty) => sum + qty);
+
+  int get unassignedQuantity =>
+      (quantity - assignedQuantity).clamp(0, quantity);
+
+  ReceiptItem copyWith({
+    String? name,
+    int? quantity,
+    double? price,
+    Map<String, int>? assignments,
+  }) {
     return ReceiptItem(
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       price: price ?? this.price,
+      assignments: assignments ?? this.assignments,
     );
   }
 
   @override
-  List<Object?> get props => [name, quantity, price];
+  List<Object?> get props => [name, quantity, price, assignments];
 }
 
 class Receipt extends Equatable {
@@ -35,6 +53,10 @@ class Receipt extends Equatable {
   final double? serviceCharge;
   final double? tax;
   final double? adjustment;
+
+  /// Whether each friend (by name, matching [ReceiptItem.assignments] keys)
+  /// has paid their share of this receipt.
+  final Map<String, bool> paidStatus;
   final String rawText;
 
   const Receipt({
@@ -47,6 +69,7 @@ class Receipt extends Equatable {
     this.serviceCharge,
     this.tax,
     this.adjustment,
+    this.paidStatus = const {},
     required this.rawText,
   });
 
@@ -60,6 +83,7 @@ class Receipt extends Equatable {
     double? serviceCharge,
     double? tax,
     double? adjustment,
+    Map<String, bool>? paidStatus,
     String? rawText,
   }) {
     return Receipt(
@@ -72,6 +96,7 @@ class Receipt extends Equatable {
       serviceCharge: serviceCharge ?? this.serviceCharge,
       tax: tax ?? this.tax,
       adjustment: adjustment ?? this.adjustment,
+      paidStatus: paidStatus ?? this.paidStatus,
       rawText: rawText ?? this.rawText,
     );
   }
@@ -87,6 +112,7 @@ class Receipt extends Equatable {
         serviceCharge,
         tax,
         adjustment,
+        paidStatus,
         rawText,
       ];
 }

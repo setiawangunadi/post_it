@@ -42,7 +42,7 @@ class ReceiptScannerBloc
     final result = await saveReceipt(SaveReceiptParams(receipt: event.receipt));
     result.fold(
       (failure) => emit(ScannerError(failure.message)),
-      (_) => emit(ScannerSaved()),
+      (_) => emit(ScannerSaved(event.receipt)),
     );
   }
 }
