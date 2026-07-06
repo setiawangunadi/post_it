@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post It — Receipt Scanner: Activity Summary</title>
+<style>
+  :root {
+    --bg: #faf7f5;
+    --panel: #ffffff;
+    --ink: #26201d;
+    --ink-soft: #6b6058;
+    --accent: #b8896f;
+    --accent-soft: #f0dfd4;
+    --line: #ece4de;
+    --good: #4c7a5a;
+    --good-bg: #e7f0e9;
+    --bad: #a8503f;
+    --bad-bg: #f6e6e2;
+    --code-bg: #2b2420;
+    --code-ink: #f1e9e2;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.hero {
+    margin-bottom: 40px;
+  }
+  header.hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  header.hero h1 {
+    font-size: 34px;
+    margin: 8px 0 10px;
+    letter-spacing: -0.02em;
+  }
+  header.hero p.sub {
+    color: var(--ink-soft);
+    font-size: 16px;
+    max-width: 640px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 28px 0 8px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 16px 14px;
+  }
+  .stat .n { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .stat .l { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  section { margin-top: 44px; }
+  section > h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+  }
+  .card + .card { margin-top: 14px; }
+
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .arch-grid .card h3 { margin: 0 0 8px; font-size: 15px; }
+  .arch-grid .card ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); }
+  .arch-grid .card li { margin: 3px 0; }
+  .arch-grid .card li code { color: var(--ink); }
+
+  code, .mono {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+  }
+  .card code {
+    background: var(--accent-soft);
+    padding: 1px 6px;
+    border-radius: 5px;
+  }
+
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 8px; top: 6px; bottom: 6px;
+    width: 2px;
+    background: var(--line);
+  }
+  .tl-item { position: relative; padding-bottom: 26px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    left: -28px; top: 4px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+  }
+  .tl-item .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-bottom: 6px;
+  }
+  .tag.build { background: var(--accent-soft); color: var(--accent); }
+  .tag.bug { background: var(--bad-bg); color: var(--bad); }
+  .tag.fix { background: var(--good-bg); color: var(--good); }
+  .tl-item h3 { margin: 0 0 6px; font-size: 16px; }
+  .tl-item p { margin: 0 0 8px; color: var(--ink-soft); font-size: 14px; }
+  .tl-item .detail { font-size: 13.5px; color: var(--ink-soft); }
+
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .ba-box {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .ba-box.before { background: var(--bad-bg); color: var(--bad); }
+  .ba-box.after { background: var(--good-bg); color: var(--good); }
+  .ba-box .k { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .8; margin-bottom: 4px;}
+
+  table.results {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  table.results th, table.results td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.results th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  table.results td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill { display:inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 100px; }
+  .pill.ok { background: var(--good-bg); color: var(--good); }
+
+  .filelist {
+    columns: 2;
+    column-gap: 24px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .filelist div { break-inside: avoid; padding: 3px 0; }
+  .filelist .path { color: var(--ink); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 12.5px;
+  }
+
+  @media (max-width: 720px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .arch-grid { grid-template-columns: 1fr; }
+    .before-after { grid-template-columns: 1fr; }
+    .filelist { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">post_it · Flutter app</div>
+    <h1>Receipt Scanner: build &amp; debugging summary</h1>
+    <p class="sub">
+      Added an end-to-end feature to photograph or pick a shopping receipt, run on-device OCR,
+      parse it into structured line items, and save it to a local history — then iteratively
+      fixed the parsing engine against two real, differently-formatted receipts.
+    </p>
+  </header>
+
+  <div class="stat-row">
+    <div class="stat"><div class="n">20</div><div class="l">files added</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">OCR parsing modes</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">real receipts tested</div></div>
+    <div class="stat"><div class="n">14/14</div><div class="l">items parsed correctly (final)</div></div>
+  </div>
+
+  <section>
+    <h2>What was built</h2>
+    <div class="arch-grid">
+      <div class="card">
+        <h3>Domain</h3>
+        <ul>
+          <li><code>Receipt</code>, <code>ReceiptItem</code> entities</li>
+          <li><code>ReceiptRepository</code> contract</li>
+          <li>Use cases: scan, save, get&nbsp;history, delete</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Data</h3>
+        <ul>
+          <li>ML&nbsp;Kit OCR datasource</li>
+          <li>Heuristic <code>ReceiptTextParser</code></li>
+          <li>Hive local datasource (history)</li>
+          <li>Repository impl (OCR + parse + persist)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Presentation</h3>
+        <ul>
+          <li><code>ReceiptScannerBloc</code> + page (pick/scan/edit/save)</li>
+          <li><code>ReceiptHistoryBloc</code> + page (list/detail/delete)</li>
+          <li>Editable item-row widget</li>
+          <li>New <code>HomePage</code> + router wiring</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dependencies &amp; permissions</h2>
+    <div class="card">
+      <p style="margin:0 0 10px;"><code>image_picker</code> (camera/gallery) and <code>google_mlkit_text_recognition</code> (on-device, offline OCR, no API key) added to <code>pubspec.yaml</code>.</p>
+      <p style="margin:0;">Android: <code>CAMERA</code> permission. iOS: <code>NSCameraUsageDescription</code> + <code>NSPhotoLibraryUsageDescription</code> added to <code>Info.plist</code>.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Parsing engine: iteration history</h2>
+    <div class="timeline">
+
+      <div class="tl-item">
+        <span class="tag build">Build</span>
+        <h3>v1 — flat-text heuristic parser</h3>
+        <p>First pass parsed ML Kit's flattened text string line-by-line, matching a trailing price on each line.</p>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag bug">Bug found</span>
+        <h3>Column bleed on real thermal receipt</h3>
+        <p>Tested against a real coffee-shop receipt photo (Armor Genuine, 11 items). ML Kit groups OCR text into
+        spatial blocks, not visual rows — the flattened text interleaved the name column and the price column
+        out of order. <code>"Total Item 12"</code> was even misread as the grand total (value <code>12</code>).</p>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag fix">Fix</span>
+        <h3>v2 — bounding-box row reconstruction, then nearest-neighbor pairing</h3>
+        <p>Switched to using each recognized line's bounding box. First tried bucketing lines into rows by vertical
+        overlap — broke on the photo's slight skew. Replaced with direct nearest-neighbor pairing: every price is
+        matched to the single closest label <em>that structurally looks like a label</em> ("1x 28.000", "Total",
+        "Tax"), only falling back to "closest text of any kind" when no such label exists. Also normalized OCR's
+        "1x" → "lx" (digit 1 / letter L) confusion.</p>
+        <div class="before-after">
+          <div class="ba-box before"><div class="k">Before</div>"1x 28.000 OREO CI..." · 34000</div>
+          <div class="ba-box after"><div class="k">After</div>"OREO CRUSHER" · 34000</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag bug">Bug found</span>
+        <h3>Digit misreads in individual prices</h3>
+        <p>Names/pairing were now correct, but 4 of 11 prices had OCR digit noise, e.g. <strong>ARTOMORO GULA AREN</strong>
+        showed <code>28080</code> instead of <code>28000</code>.</p>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag fix">Fix</span>
+        <h3>v3 — cross-validate the two OCR reads of the same price</h3>
+        <p>Every "1x 28.000"-style label already contains a second, independent OCR read of the unit price,
+        previously discarded. Now both readings are compared and whichever is a clean round-hundred value is
+        preferred (retail prices on this receipt type are never odd amounts).</p>
+        <table class="results">
+          <tr><th>Item</th><th class="num">Before</th><th class="num">After</th></tr>
+          <tr><td>Artomoro Gula Aren</td><td class="num">28080</td><td class="num">28000 <span class="pill ok">fixed</span></td></tr>
+          <tr><td>Nasi Ayam Sambal Bawang</td><td class="num">48003</td><td class="num">48000 <span class="pill ok">fixed</span></td></tr>
+          <tr><td>Ekstra Ice</td><td class="num">2086</td><td class="num">2000 <span class="pill ok">fixed</span></td></tr>
+        </table>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag bug">Bug found</span>
+        <h3>Smoothlies Mango still wrong (32 instead of 32000)</h3>
+        <p>The one remaining case: <em>both</em> OCR reads were corrupted — the amount column dropped a digit
+        ("32.00", read as a decimal instead of thousands), and the label had a wrong trailing digit ("32.009").</p>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag fix">Fix</span>
+        <h3>v4 — prefer the correct magnitude, then round</h3>
+        <p>Added a tie-breaker: when neither reading is clean, prefer whichever raw string has the proper
+        "thousands" digit-group shape (a wrong trailing digit is far less damaging than a dropped digit that
+        corrupts the whole magnitude), then snap to the nearest hundred.</p>
+        <div class="before-after">
+          <div class="ba-box before"><div class="k">Before</div>Smoothlies Mango · 32</div>
+          <div class="ba-box after"><div class="k">After</div>Smoothlies Mango · 32000 — item subtotal now matches the receipt's own printed 346,000 exactly</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag bug">Bug found</span>
+        <h3>Second receipt: completely different layout</h3>
+        <p>A table-style invoice (Butik Liceria) with proper columns — KETERANGAN / JUMLAH / HARGA / TOTAL — plus new
+        OCR letter/digit confusions (<code>Rpl20.000,00</code>, <code>Rpó0.000,00</code>). None of it matched the
+        thermal-receipt heuristics.</p>
+      </div>
+
+      <div class="tl-item">
+        <span class="tag fix">Fix</span>
+        <h3>v5 — table-layout detection + dedicated table parser</h3>
+        <p>Parser now detects a header row containing 2+ recognizable column keywords (English or Indonesian) and,
+        when found, clusters lines into rows and assigns each cell to its nearest column by position — falling back
+        to the original thermal-receipt logic when no table header is detected. Also added a normalization pass for
+        letter-for-digit OCR confusions inside amounts.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Final verification (on physical device)</h2>
+    <div class="card">
+      <table class="results">
+        <tr><th>Receipt</th><th>Format</th><th class="num">Items</th><th class="num">Total</th><th>Result</th></tr>
+        <tr><td>Armor Genuine (coffee shop)</td><td>Thermal 2-column</td><td class="num">11</td><td class="num">398,000</td><td><span class="pill ok">all correct</span></td></tr>
+        <tr><td>Butik Liceria (invoice)</td><td>4-column table</td><td class="num">3</td><td class="num">420,000</td><td><span class="pill ok">all correct</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Files touched</h2>
+    <div class="card filelist">
+      <div class="path">lib/shared/pages/home_page.dart</div>
+      <div class="path">lib/router/app_router.dart</div>
+      <div class="path">lib/injection_container.dart</div>
+      <div class="path">pubspec.yaml</div>
+      <div class="path">android/.../AndroidManifest.xml</div>
+      <div class="path">ios/Runner/Info.plist</div>
+      <div class="path">.../domain/entities/receipt.dart</div>
+      <div class="path">.../domain/repositories/receipt_repository.dart</div>
+      <div class="path">.../domain/usecases/scan_receipt.dart</div>
+      <div class="path">.../domain/usecases/save_receipt.dart</div>
+      <div class="path">.../domain/usecases/get_receipt_history.dart</div>
+      <div class="path">.../domain/usecases/delete_receipt.dart</div>
+      <div class="path">.../data/datasources/receipt_ocr_datasource.dart</div>
+      <div class="path">.../data/datasources/receipt_text_parser.dart</div>
+      <div class="path">.../data/datasources/receipt_local_datasource.dart</div>
+      <div class="path">.../data/models/receipt_model.dart</div>
+      <div class="path">.../data/repositories/receipt_repository_impl.dart</div>
+      <div class="path">.../presentation/bloc/scanner/receipt_scanner_bloc.dart (+event/state)</div>
+      <div class="path">.../presentation/bloc/history/receipt_history_bloc.dart (+event/state)</div>
+      <div class="path">.../presentation/pages/receipt_scanner_page.dart</div>
+      <div class="path">.../presentation/pages/receipt_history_page.dart</div>
+      <div class="path">.../presentation/widgets/receipt_item_tile.dart</div>
+    </div>
+  </section>
+
+  <footer>
+    Generated summary of the receipt-scanner feature work on <span class="mono">post_it</span>. Not a build artifact — for reference only.
+  </footer>
+
+</div>
+</body>
+</html>
