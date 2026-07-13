@@ -18,6 +18,9 @@ class ReceiptScannerBloc
   }) : super(ScannerInitial()) {
     on<ScanReceiptRequested>(_onScanReceiptRequested);
     on<SaveReceiptRequested>(_onSaveReceiptRequested);
+    on<EditReceiptRequested>(
+      (event, emit) => emit(ScannerReview(event.receipt)),
+    );
     on<ScannerReset>((event, emit) => emit(ScannerInitial()));
   }
 

@@ -19,7 +19,12 @@ class ReceiptScannerPage extends StatelessWidget {
   /// starts immediately instead of prompting for a source again.
   final String? imagePath;
 
-  const ReceiptScannerPage({super.key, this.imagePath});
+  /// An already-saved receipt to edit — when present, this takes priority
+  /// over [imagePath] and skips OCR entirely, going straight to the review
+  /// screen pre-filled with its existing data (items, assignments, charges).
+  final Receipt? existingReceipt;
+
+  const ReceiptScannerPage({super.key, this.imagePath, this.existingReceipt});
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +35,18 @@ class ReceiptScannerPage extends StatelessWidget {
           create: (_) => sl<FriendsBloc>()..add(const LoadFriends()),
         ),
       ],
-      child: _ReceiptScannerView(imagePath: imagePath),
+      child: _ReceiptScannerView(
+        imagePath: imagePath,
+        existingReceipt: existingReceipt,
+      ),
     );
   }
 }
 
 class _ReceiptScannerView extends StatefulWidget {
   final String? imagePath;
-  const _ReceiptScannerView({this.imagePath});
+  final Receipt? existingReceipt;
+  const _ReceiptScannerView({this.imagePath, this.existingReceipt});
 
   @override
   State<_ReceiptScannerView> createState() => _ReceiptScannerViewState();
@@ -57,7 +66,11 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.imagePath != null) {
+      if (widget.existingReceipt != null) {
+        context
+            .read<ReceiptScannerBloc>()
+            .add(EditReceiptRequested(widget.existingReceipt!));
+      } else if (widget.imagePath != null) {
         context
             .read<ReceiptScannerBloc>()
             .add(ScanReceiptRequested(widget.imagePath!));
@@ -109,7 +122,11 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Receipt')),
+      appBar: AppBar(
+        title: Text(
+          widget.existingReceipt != null ? 'Edit Receipt' : 'Scan Receipt',
+        ),
+      ),
       body: BlocConsumer<ReceiptScannerBloc, ReceiptScannerState>(
         listener: (context, state) {
           if (state is ScannerReview) {

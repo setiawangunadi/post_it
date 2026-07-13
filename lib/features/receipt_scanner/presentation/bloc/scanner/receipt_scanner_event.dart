@@ -20,4 +20,13 @@ class SaveReceiptRequested extends ReceiptScannerEvent {
   List<Object?> get props => [receipt];
 }
 
+/// Opens an already-saved receipt for editing — skips OCR entirely and
+/// goes straight to the review screen with its existing data.
+class EditReceiptRequested extends ReceiptScannerEvent {
+  final Receipt receipt;
+  const EditReceiptRequested(this.receipt);
+  @override
+  List<Object?> get props => [receipt];
+}
+
 class ScannerReset extends ReceiptScannerEvent {}

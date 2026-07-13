@@ -26,8 +26,12 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/receipt-scanner',
-      builder: (context, state) =>
-          ReceiptScannerPage(imagePath: state.extra as String?),
+      builder: (context, state) {
+        final extra = state.extra;
+        return extra is Receipt
+            ? ReceiptScannerPage(existingReceipt: extra)
+            : ReceiptScannerPage(imagePath: extra as String?);
+      },
     ),
     GoRoute(
       path: '/receipt-history',

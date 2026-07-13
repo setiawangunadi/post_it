@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../injection_container.dart';
+import '../../../../router/route_observer.dart';
 import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
 import '../bloc/history/receipt_history_bloc.dart';
@@ -17,28 +19,66 @@ class ReceiptHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<ReceiptHistoryBloc>()..add(const LoadHistory()),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Receipt History')),
-        body: BlocBuilder<ReceiptHistoryBloc, ReceiptHistoryState>(
-          builder: (context, state) {
-            return switch (state) {
-              HistoryLoading() ||
-              HistoryInitial() =>
-                const Center(child: CircularProgressIndicator()),
-              HistoryError(:final message) => Center(child: Text(message)),
-              HistoryLoaded(:final receipts) => receipts.isEmpty
-                  ? const Center(child: Text('No receipts scanned yet'))
-                  : ListView.builder(
-                      itemCount: receipts.length,
-                      itemBuilder: (context, index) {
-                        final receipt = receipts[index];
-                        return _ReceiptTile(receipt: receipt);
-                      },
-                    ),
-              _ => const SizedBox.shrink(),
-            };
-          },
-        ),
+      child: const _ReceiptHistoryView(),
+    );
+  }
+}
+
+class _ReceiptHistoryView extends StatefulWidget {
+  const _ReceiptHistoryView();
+
+  @override
+  State<_ReceiptHistoryView> createState() => _ReceiptHistoryViewState();
+}
+
+class _ReceiptHistoryViewState extends State<_ReceiptHistoryView>
+    with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<void>) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  // Refreshes the list whenever the user navigates back here, since editing
+  // a receipt happens on a separate screen and this Bloc instance stays
+  // alive underneath while that's on top.
+  @override
+  void didPopNext() {
+    context.read<ReceiptHistoryBloc>().add(const LoadHistory());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Receipt History')),
+      body: BlocBuilder<ReceiptHistoryBloc, ReceiptHistoryState>(
+        builder: (context, state) {
+          return switch (state) {
+            HistoryLoading() ||
+            HistoryInitial() =>
+              const Center(child: CircularProgressIndicator()),
+            HistoryError(:final message) => Center(child: Text(message)),
+            HistoryLoaded(:final receipts) => receipts.isEmpty
+                ? const Center(child: Text('No receipts scanned yet'))
+                : ListView.builder(
+                    itemCount: receipts.length,
+                    itemBuilder: (context, index) {
+                      final receipt = receipts[index];
+                      return _ReceiptTile(receipt: receipt);
+                    },
+                  ),
+            _ => const SizedBox.shrink(),
+          };
+        },
       ),
     );
   }
@@ -105,9 +145,23 @@ class ReceiptDetailSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              receipt.merchantName ?? 'Receipt',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    receipt.merchantName ?? 'Receipt',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit receipt',
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.push('/receipt-scanner', extra: receipt);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             ...receipt.items.map(
