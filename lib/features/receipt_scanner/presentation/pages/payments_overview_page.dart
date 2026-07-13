@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
@@ -19,7 +20,7 @@ class PaymentsOverviewPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<ReceiptHistoryBloc>()..add(const LoadHistory()),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Payments')),
+        appBar: AppBar(title: Text(S.of(context).paymentsTitle)),
         body: BlocBuilder<ReceiptHistoryBloc, ReceiptHistoryState>(
           builder: (context, state) {
             return switch (state) {
@@ -46,12 +47,11 @@ class _PaymentsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final balances = calculateFriendBalances(receipts);
     if (balances.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
-            'No split payments yet. Assign items to friends when scanning '
-            'a receipt to track who owes what.',
+            S.of(context).noSplitPaymentsHint,
             textAlign: TextAlign.center,
           ),
         ),
@@ -123,7 +123,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
   void _share(BuildContext context, FriendReceiptContribution contribution) {
     final merchant = contribution.receipt.merchantName?.isNotEmpty == true
         ? contribution.receipt.merchantName!
-        : 'the receipt';
+        : S.of(context).theReceiptFallbackName;
     final share = _shareFor(
       contribution.receipt,
       balance.friendName,
@@ -156,6 +156,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
   /// payment request — one shared amount/breakdown instead of asking the
   /// friend to pay each receipt separately.
   void _shareMerged(BuildContext context) {
+    final l10n = S.of(context);
     final selected = balance.contributions
         .where((c) => _selectedReceiptIds.contains(c.receipt.id))
         .toList();
@@ -171,13 +172,13 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
     DateTime latestDate = selected.first.receipt.scannedAt;
     // Multiple different merchants: prefix each item with its receipt's
     // merchant so the recipient can tell which bill it came from.
-    final prefixItems = !_sameMerchant(selected);
+    final prefixItems = !_sameMerchant(selected, l10n);
 
     for (final contribution in selected) {
       final receipt = contribution.receipt;
       final merchant = receipt.merchantName?.isNotEmpty == true
           ? receipt.merchantName!
-          : 'Receipt';
+          : l10n.receiptFallbackName;
       merchants.add(merchant);
       if (receipt.scannedAt.isAfter(latestDate)) latestDate = receipt.scannedAt;
 
@@ -211,7 +212,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
         ? merchants.first
         : (merchants.length <= 3
             ? merchants.join(' & ')
-            : '${selected.length} receipts');
+            : l10n.receiptsCountLabel(selected.length));
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -232,12 +233,12 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
     );
   }
 
-  bool _sameMerchant(List<FriendReceiptContribution> contributions) {
+  bool _sameMerchant(List<FriendReceiptContribution> contributions, S l10n) {
     final names = contributions
         .map(
           (c) => c.receipt.merchantName?.isNotEmpty == true
               ? c.receipt.merchantName!
-              : 'Receipt',
+              : l10n.receiptFallbackName,
         )
         .toSet();
     return names.length <= 1;
@@ -249,7 +250,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
   ) {
     final merchant = contribution.receipt.merchantName?.isNotEmpty == true
         ? contribution.receipt.merchantName!
-        : 'the receipt';
+        : S.of(context).theReceiptFallbackName;
     showModalBottomSheet(
       context: context,
       builder: (_) => AssignedItemsSheet(
@@ -270,11 +271,13 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
         title: Text(balance.friendName),
         subtitle: Text(
           balance.isSettled
-              ? 'All settled'
-              : 'Owes Rp${formatRupiah(balance.totalOwed)}',
+              ? S.of(context).allSettled
+              : S.of(context).owesAmount('Rp${formatRupiah(balance.totalOwed)}'),
         ),
         trailing: Chip(
-          label: Text(balance.isSettled ? 'Paid' : 'Unpaid'),
+          label: Text(
+            balance.isSettled ? S.of(context).paidLabel : S.of(context).unpaidLabel,
+          ),
           backgroundColor: balance.isSettled
               ? colors.tertiaryContainer
               : colors.errorContainer,
@@ -294,8 +297,10 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
                   Expanded(
                     child: Text(
                       _selectedReceiptIds.length >= 2
-                          ? '${_selectedReceiptIds.length} receipts selected'
-                          : 'Select 2+ receipts to merge into one share',
+                          ? S
+                              .of(context)
+                              .receiptsSelectedCount(_selectedReceiptIds.length)
+                          : S.of(context).selectReceiptsToMergeHint,
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12.5,
@@ -307,7 +312,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
                         ? () => _shareMerged(context)
                         : null,
                     icon: const Icon(Icons.merge_type, size: 18),
-                    label: const Text('Share Merged'),
+                    label: Text(S.of(context).shareMergedButton),
                   ),
                 ],
               ),
@@ -315,7 +320,7 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
           ...balance.contributions.map((contribution) {
             final merchant = contribution.receipt.merchantName?.isNotEmpty == true
                 ? contribution.receipt.merchantName!
-                : 'Receipt';
+                : S.of(context).receiptFallbackName;
             final receiptId = contribution.receipt.id;
             return ListTile(
               contentPadding: const EdgeInsets.only(left: 16, right: 8),
@@ -352,13 +357,13 @@ class _FriendBalanceCardState extends State<_FriendBalanceCard> {
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.receipt_long_outlined),
-                    tooltip: 'View items',
+                    tooltip: S.of(context).viewItemsTooltip,
                     onPressed: () => _viewItems(context, contribution),
                   ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.share),
-                    tooltip: 'Share payment request',
+                    tooltip: S.of(context).sharePaymentRequestTooltip,
                     onPressed: () => _share(context, contribution),
                   ),
                 ],

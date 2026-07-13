@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/friend_share.dart';
 import '../utils/payment_message.dart';
 
@@ -87,7 +88,7 @@ class BillShareCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'SPLIT BILL PAYMENT',
+                  S.of(context).splitBillPaymentLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.6,
@@ -104,7 +105,7 @@ class BillShareCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('for $merchant', style: greyText),
+                Text(S.of(context).forMerchant(merchant), style: greyText),
                 const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -124,14 +125,18 @@ class BillShareCard extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Divider(height: 1),
                 const SizedBox(height: 14),
-                _DetailRow('Billed to', friendName),
-                _DetailRow('Merchant', merchant),
+                _DetailRow(S.of(context).billedToLabel, friendName),
+                _DetailRow(S.of(context).merchantLabel, merchant),
                 if (items.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Items (${_formatCount(items.fold(0.0, (sum, i) => sum + i.quantity))})',
+                      S.of(context).itemsCountLabel(
+                            _formatCount(
+                              items.fold(0.0, (sum, i) => sum + i.quantity),
+                            ),
+                          ),
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 13,
@@ -147,8 +152,7 @@ class BillShareCard extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
-                        'You have more than $maxItemsShown items — ask your '
-                        'friend for the full item details.',
+                        S.of(context).moreItemsHint(maxItemsShown),
                         style: TextStyle(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
@@ -166,29 +170,35 @@ class BillShareCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   if (serviceCharge != 0)
                     _DetailRow(
-                      'Service Charge',
+                      S.of(context).serviceChargeLabel,
                       'Rp${formatRupiah(serviceCharge)}',
                     ),
                   if (tax != 0)
-                    _DetailRow('Tax', 'Rp${formatRupiah(tax)}'),
+                    _DetailRow(S.of(context).taxLabel, 'Rp${formatRupiah(tax)}'),
                   if (adjustment != 0)
-                    _DetailRow('Adjustment', 'Rp${formatRupiah(adjustment)}'),
+                    _DetailRow(
+                      S.of(context).adjustmentLabel,
+                      'Rp${formatRupiah(adjustment)}',
+                    ),
                   if (discount != 0)
-                    _DetailRow('Discount', '-Rp${formatRupiah(discount)}'),
+                    _DetailRow(
+                      S.of(context).discountLabel,
+                      '-Rp${formatRupiah(discount)}',
+                    ),
                 ],
                 if (bankName?.isNotEmpty ?? false) ...[
                   const SizedBox(height: 10),
-                  _DetailRow('Bank', bankName!),
+                  _DetailRow(S.of(context).bankLabel, bankName!),
                 ],
                 if (accountNumber?.isNotEmpty ?? false)
-                  _DetailRow('Account No.', accountNumber!),
+                  _DetailRow(S.of(context).accountNoLabel, accountNumber!),
                 if (accountHolder?.isNotEmpty ?? false)
-                  _DetailRow('Account Holder', accountHolder!),
+                  _DetailRow(S.of(context).accountHolderLabel, accountHolder!),
                 const SizedBox(height: 10),
                 const Divider(height: 1),
                 const SizedBox(height: 14),
                 Text(
-                  'Please transfer the amount above.\nShared via PuteIt',
+                  S.of(context).transferFooterNote,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),

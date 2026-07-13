@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../../../injection_container.dart';
 import '../../../../router/route_observer.dart';
 import '../../domain/entities/friend_share.dart';
@@ -59,7 +60,7 @@ class _ReceiptHistoryViewState extends State<_ReceiptHistoryView>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Receipt History')),
+      appBar: AppBar(title: Text(S.of(context).receiptHistoryTitle)),
       body: BlocBuilder<ReceiptHistoryBloc, ReceiptHistoryState>(
         builder: (context, state) {
           return switch (state) {
@@ -68,7 +69,7 @@ class _ReceiptHistoryViewState extends State<_ReceiptHistoryView>
               const Center(child: CircularProgressIndicator()),
             HistoryError(:final message) => Center(child: Text(message)),
             HistoryLoaded(:final receipts) => receipts.isEmpty
-                ? const Center(child: Text('No receipts scanned yet'))
+                ? Center(child: Text(S.of(context).noReceiptsScannedYet))
                 : ListView.builder(
                     itemCount: receipts.length,
                     itemBuilder: (context, index) {
@@ -117,10 +118,13 @@ class _ReceiptTile extends StatelessWidget {
         title: Text(
           receipt.merchantName?.isNotEmpty == true
               ? receipt.merchantName!
-              : 'Receipt',
+              : S.of(context).receiptFallbackName,
         ),
         subtitle: Text(
-          '${DateFormat.yMMMd().add_Hm().format(receipt.scannedAt)} · ${receipt.items.length} items',
+          S.of(context).receiptItemsSubtitle(
+                DateFormat.yMMMd().add_Hm().format(receipt.scannedAt),
+                receipt.items.length,
+              ),
         ),
         trailing: Text(displayTotal.toStringAsFixed(0)),
         onTap: () => showModalBottomSheet(
@@ -149,13 +153,13 @@ class ReceiptDetailSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    receipt.merchantName ?? 'Receipt',
+                    receipt.merchantName ?? S.of(context).receiptFallbackName,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit receipt',
+                  tooltip: S.of(context).editReceiptTooltip,
                   onPressed: () {
                     Navigator.of(context).pop();
                     context.push('/receipt-scanner', extra: receipt);
@@ -190,7 +194,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Service Charge'),
+                    Text(S.of(context).serviceChargeLabel),
                     Text(receipt.serviceCharge!.toStringAsFixed(0)),
                   ],
                 ),
@@ -201,7 +205,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Tax (PPN)'),
+                    Text(S.of(context).taxWithPpnLabel),
                     Text(receipt.tax!.toStringAsFixed(0)),
                   ],
                 ),
@@ -212,7 +216,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Adjustment'),
+                    Text(S.of(context).adjustmentLabel),
                     Text(receipt.adjustment!.toStringAsFixed(0)),
                   ],
                 ),
@@ -223,7 +227,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Discount'),
+                    Text(S.of(context).discountLabel),
                     Text('-${receipt.discount!.toStringAsFixed(0)}'),
                   ],
                 ),
@@ -231,9 +235,9 @@ class ReceiptDetailSheet extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Total',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  S.of(context).totalLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   (receipt.total ?? receipt.itemsTotal).toStringAsFixed(0),
@@ -244,7 +248,7 @@ class ReceiptDetailSheet extends StatelessWidget {
             if (receipt.items.any((i) => i.assignments.isNotEmpty)) ...[
               const SizedBox(height: 20),
               Text(
-                'Split by friend',
+                S.of(context).splitByFriend,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const Divider(),

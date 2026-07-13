@@ -1,0 +1,190 @@
+{
+  "@@locale": "en",
+  "appName": "post_it",
+
+  "receiptFallbackName": "Receipt",
+  "theReceiptFallbackName": "the receipt",
+  "allSettled": "All settled",
+  "paidLabel": "Paid",
+  "unpaidLabel": "Unpaid",
+  "owesAmount": "Owes {amount}",
+  "@owesAmount": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "viewItemsTooltip": "View items",
+  "sharePaymentRequestTooltip": "Share payment request",
+  "doneButton": "Done",
+  "totalLabel": "Total",
+  "serviceChargeLabel": "Service Charge",
+  "taxWithPpnLabel": "Tax (PPN)",
+  "taxLabel": "Tax",
+  "adjustmentLabel": "Adjustment",
+  "discountLabel": "Discount",
+  "bankLabel": "Bank",
+  "merchantLabel": "Merchant",
+
+  "homeRecentReceipts": "Recent Receipts",
+  "homeEmptyReceiptsHint": "No receipts yet. Scan one to get started.",
+  "homeTagline": "Scan receipts, split the bill with friends.",
+  "paymentInfoTooltip": "Payment Info",
+  "totalSpendingLabel": "Total Spending",
+  "receiptsScannedCount": "{count, plural, one{1 receipt scanned} other{{count} receipts scanned}}",
+  "@receiptsScannedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "scanAction": "Scan",
+  "historyAction": "History",
+  "paymentsAction": "Payments",
+  "seeAll": "See all",
+  "homeEmptyPaymentsHint": "Assign items to friends on a receipt to track who owes what.",
+  "receiptItemsSubtitle": "{date} · {count, plural, one{1 item} other{{count} items}}",
+  "@receiptItemsSubtitle": {
+    "placeholders": {
+      "date": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "whoOwesWhatTitle": "Who Owes What",
+  "totalWithAmount": "Total {amount}",
+  "@totalWithAmount": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "noItemsAssignedHint": "No items were assigned to a friend, so there's no one to bill. Go back and assign items to split the cost.",
+  "unassignedAmountHint": "{amount} not assigned to anyone",
+  "@unassignedAmountHint": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "paymentsTitle": "Payments",
+  "noSplitPaymentsHint": "No split payments yet. Assign items to friends when scanning a receipt to track who owes what.",
+  "receiptsSelectedCount": "{count, plural, one{1 receipt selected} other{{count} receipts selected}}",
+  "@receiptsSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "selectReceiptsToMergeHint": "Select 2+ receipts to merge into one share",
+  "shareMergedButton": "Share Merged",
+  "receiptsCountLabel": "{count, plural, one{1 receipt} other{{count} receipts}}",
+  "@receiptsCountLabel": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "receiptHistoryTitle": "Receipt History",
+  "noReceiptsScannedYet": "No receipts scanned yet",
+  "editReceiptTooltip": "Edit receipt",
+  "splitByFriend": "Split by friend",
+
+  "editReceiptTitle": "Edit Receipt",
+  "scanReceiptTitle": "Scan Receipt",
+  "choosePhotoSource": "Choose Photo Source",
+  "itemsLabel": "Items",
+  "addItemButton": "Add item",
+  "itemsSubtotalLabel": "Items subtotal",
+  "saveReceiptButton": "Save Receipt",
+
+  "paymentRequestForFriend": "Payment request for {name}",
+  "@paymentRequestForFriend": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "sharePaymentRequestTitle": "Share Payment Request",
+  "shareAsImage": "Share as Image",
+  "shareAsText": "Share as Text",
+
+  "greetingHi": "Hi {name},",
+  "@greetingHi": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "yourShareMessage": "Your share of the bill from {merchant} is {amount}.",
+  "@yourShareMessage": {
+    "placeholders": {
+      "merchant": { "type": "String" },
+      "amount": { "type": "String" }
+    }
+  },
+  "breakdownLabel": "Breakdown:",
+  "serviceChargeLine": "Service Charge: {amount}",
+  "@serviceChargeLine": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "taxLine": "Tax: {amount}",
+  "@taxLine": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "adjustmentLine": "Adjustment: {amount}",
+  "@adjustmentLine": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "discountLine": "Discount: -{amount}",
+  "@discountLine": {
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "pleaseTransferTo": "Please transfer to:",
+  "accountHolderPrefix": "a.n. {name}",
+  "@accountHolderPrefix": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "thanksClosing": "Thanks!",
+
+  "takePhoto": "Take Photo",
+  "chooseFromGallery": "Choose from Gallery",
+
+  "friendItemsTitle": "{name}'s items",
+  "@friendItemsTitle": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "noItemsAssigned": "No items assigned.",
+
+  "splitBillPaymentLabel": "SPLIT BILL PAYMENT",
+  "forMerchant": "for {merchant}",
+  "@forMerchant": {
+    "placeholders": { "merchant": { "type": "String" } }
+  },
+  "billedToLabel": "Billed to",
+  "itemsCountLabel": "Items ({count})",
+  "@itemsCountLabel": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "moreItemsHint": "You have more than {max} items — ask your friend for the full item details.",
+  "@moreItemsHint": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "accountNoLabel": "Account No.",
+  "accountHolderLabel": "Account Holder",
+  "transferFooterNote": "Please transfer the amount above.\nShared via PuteIt",
+
+  "itemFieldLabel": "Item",
+  "qtyFieldLabel": "Qty",
+  "priceFieldLabel": "Price",
+
+  "assignChipLabel": "Assign",
+  "assignToTitle": "Assign to",
+  "splitEvenlyAmongHint": "Split evenly among {count} people",
+  "@splitEvenlyAmongHint": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "remainingOfQuantityHint": "{remaining} of {total} unassigned",
+  "@remainingOfQuantityHint": {
+    "placeholders": {
+      "remaining": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "newFriendNameLabel": "New friend name",
+
+  "paymentInfoSavedSnackbar": "Payment info saved",
+  "paymentInfoTitle": "Payment Info",
+  "paymentInfoDescription": "This is included in payment requests you share with friends, so they know where to send money.",
+  "bankNameFieldLabel": "Bank / e-wallet name",
+  "accountNumberFieldLabel": "Account number",
+  "accountHolderNameFieldLabel": "Account holder name",
+  "saveButton": "Save",
+
+  "failedToSaveReceipt": "Failed to save receipt",
+  "failedToLoadReceiptHistory": "Failed to load receipt history",
+  "failedToDeleteReceipt": "Failed to delete receipt",
+  "failedToRecognizeText": "Failed to recognize text from image",
+  "failedToLoadFriends": "Failed to load friends",
+  "failedToSaveFriend": "Failed to save friend",
+
+  "readerFileTitle": "ReaderFile"
+}

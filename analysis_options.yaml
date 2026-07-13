@@ -1,5 +1,12 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - lib/generated/**
+  errors:
+    missing_required_param: error
+    missing_return: error
+
 linter:
   rules:
     - prefer_const_constructors
@@ -8,8 +15,3 @@ linter:
     - use_super_parameters
     - prefer_single_quotes
     - require_trailing_commas
-
-analyzer:
-  errors:
-    missing_required_param: error
-    missing_return: error

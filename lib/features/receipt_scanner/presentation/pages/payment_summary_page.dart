@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
@@ -50,9 +51,10 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
     await sl<SaveReceipt>()(SaveReceiptParams(receipt: updated));
   }
 
-  String get _merchant => _receipt.merchantName?.isNotEmpty == true
-      ? _receipt.merchantName!
-      : 'the receipt';
+  String _merchant(BuildContext context) =>
+      _receipt.merchantName?.isNotEmpty == true
+          ? _receipt.merchantName!
+          : S.of(context).theReceiptFallbackName;
 
   void _share(FriendShare share) {
     Navigator.of(context).push(
@@ -60,7 +62,7 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
         builder: (_) => ShareBillCardPage(
           data: BillShareData(
             friendName: share.friendName,
-            merchant: _merchant,
+            merchant: _merchant(context),
             amount: share.total,
             date: _receipt.scannedAt,
             items: getAssignedItems(_receipt.items, share.friendName),
@@ -79,7 +81,7 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
       context: context,
       builder: (_) => AssignedItemsSheet(
         friendName: share.friendName,
-        merchant: _merchant,
+        merchant: _merchant(context),
         items: getAssignedItems(_receipt.items, share.friendName),
       ),
     );
@@ -88,29 +90,28 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Who Owes What')),
+      appBar: AppBar(title: Text(S.of(context).whoOwesWhatTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
             _receipt.merchantName?.isNotEmpty == true
                 ? _receipt.merchantName!
-                : 'Receipt',
+                : S.of(context).receiptFallbackName,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 4),
           Text(
-            'Total ${formatRupiah(_receipt.total ?? _receipt.itemsTotal)}',
+            S.of(context).totalWithAmount(
+                  formatRupiah(_receipt.total ?? _receipt.itemsTotal),
+                ),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           if (_shares.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text(
-                'No items were assigned to a friend, so there\'s no one to '
-                'bill. Go back and assign items to split the cost.',
-              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(S.of(context).noItemsAssignedHint),
             )
           else
             ..._shares.map((share) {
@@ -124,19 +125,21 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
                   ),
                   title: Text(share.friendName),
                   subtitle: Text(
-                    paid ? 'Paid' : 'Owes ${formatRupiah(share.total)}',
+                    paid
+                        ? S.of(context).paidLabel
+                        : S.of(context).owesAmount(formatRupiah(share.total)),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.receipt_long_outlined),
-                        tooltip: 'View items',
+                        tooltip: S.of(context).viewItemsTooltip,
                         onPressed: () => _viewItems(share),
                       ),
                       IconButton(
                         icon: const Icon(Icons.share),
-                        tooltip: 'Share payment request',
+                        tooltip: S.of(context).sharePaymentRequestTooltip,
                         onPressed: () => _share(share),
                       ),
                     ],
@@ -147,15 +150,16 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
           if (_unassignedAmount > 0) ...[
             const SizedBox(height: 8),
             Text(
-              'Rp${formatRupiah(_unassignedAmount)} not assigned to '
-              'anyone',
+              S.of(context).unassignedAmountHint(
+                    'Rp${formatRupiah(_unassignedAmount)}',
+                  ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
           const SizedBox(height: 24),
           OutlinedButton(
             onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
-            child: const Text('Done'),
+            child: Text(S.of(context).doneButton),
           ),
         ],
       ),

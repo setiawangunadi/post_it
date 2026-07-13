@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/local/user_storage.dart';
+import '../../generated/l10n.dart';
 
 class PaymentInfoPage extends StatefulWidget {
   const PaymentInfoPage({super.key});
@@ -42,6 +43,7 @@ class _PaymentInfoPageState extends State<PaymentInfoPage> {
   }
 
   Future<void> _save() async {
+    final savedMessage = S.of(context).paymentInfoSavedSnackbar;
     await UserStorage.saveBankName(_bankNameController.text.trim());
     await UserStorage.saveBankAccountNumber(
       _accountNumberController.text.trim(),
@@ -51,7 +53,7 @@ class _PaymentInfoPageState extends State<PaymentInfoPage> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment info saved')),
+      SnackBar(content: Text(savedMessage)),
     );
     Navigator.of(context).pop();
   }
@@ -59,41 +61,38 @@ class _PaymentInfoPageState extends State<PaymentInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment Info')),
+      appBar: AppBar(title: Text(S.of(context).paymentInfoTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'This is included in payment requests you share with '
-                  'friends, so they know where to send money.',
-                ),
+                Text(S.of(context).paymentInfoDescription),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _bankNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Bank / e-wallet name',
+                  decoration: InputDecoration(
+                    labelText: S.of(context).bankNameFieldLabel,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _accountNumberController,
-                  decoration: const InputDecoration(
-                    labelText: 'Account number',
+                  decoration: InputDecoration(
+                    labelText: S.of(context).accountNumberFieldLabel,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _accountHolderController,
-                  decoration: const InputDecoration(
-                    labelText: 'Account holder name',
+                  decoration: InputDecoration(
+                    labelText: S.of(context).accountHolderNameFieldLabel,
                   ),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _save,
-                  child: const Text('Save'),
+                  child: Text(S.of(context).saveButton),
                 ),
               ],
             ),

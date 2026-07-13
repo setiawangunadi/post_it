@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../../../injection_container.dart';
 import '../../../friends/domain/entities/friend.dart';
 import '../../../friends/presentation/bloc/friends_bloc.dart';
@@ -124,7 +125,9 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.existingReceipt != null ? 'Edit Receipt' : 'Scan Receipt',
+          widget.existingReceipt != null
+              ? S.of(context).editReceiptTitle
+              : S.of(context).scanReceiptTitle,
         ),
       ),
       body: BlocConsumer<ReceiptScannerBloc, ReceiptScannerState>(
@@ -169,7 +172,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
       child: ElevatedButton.icon(
         onPressed: _pickAndScan,
         icon: const Icon(Icons.add_a_photo_outlined),
-        label: const Text('Choose Photo Source'),
+        label: Text(S.of(context).choosePhotoSource),
       ),
     );
   }
@@ -192,10 +195,10 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
         const SizedBox(height: 16),
         TextField(
           controller: _merchantController,
-          decoration: const InputDecoration(labelText: 'Merchant'),
+          decoration: InputDecoration(labelText: S.of(context).merchantLabel),
         ),
         const SizedBox(height: 16),
-        Text('Items', style: Theme.of(context).textTheme.titleMedium),
+        Text(S.of(context).itemsLabel, style: Theme.of(context).textTheme.titleMedium),
         const Divider(),
         ..._editableItems.asMap().entries.map((entry) {
           final index = entry.key;
@@ -216,13 +219,13 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
                 .add(const ReceiptItem(name: '', quantity: 1, price: 0)),
           ),
           icon: const Icon(Icons.add),
-          label: const Text('Add item'),
+          label: Text(S.of(context).addItemButton),
         ),
         const Divider(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Items subtotal'),
+            Text(S.of(context).itemsSubtotalLabel),
             Text(_itemsTotal.toStringAsFixed(0)),
           ],
         ),
@@ -232,7 +235,8 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             Expanded(
               child: TextField(
                 controller: _serviceChargeController,
-                decoration: const InputDecoration(labelText: 'Service Charge'),
+                decoration:
+                    InputDecoration(labelText: S.of(context).serviceChargeLabel),
                 keyboardType: TextInputType.number,
                 onChanged: (_) => setState(() {}),
               ),
@@ -241,7 +245,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             Expanded(
               child: TextField(
                 controller: _taxController,
-                decoration: const InputDecoration(labelText: 'Tax (PPN)'),
+                decoration: InputDecoration(labelText: S.of(context).taxWithPpnLabel),
                 keyboardType: TextInputType.number,
                 onChanged: (_) => setState(() {}),
               ),
@@ -254,7 +258,8 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             Expanded(
               child: TextField(
                 controller: _adjustmentController,
-                decoration: const InputDecoration(labelText: 'Adjustment'),
+                decoration:
+                    InputDecoration(labelText: S.of(context).adjustmentLabel),
                 keyboardType: TextInputType.number,
                 onChanged: (_) => setState(() {}),
               ),
@@ -263,7 +268,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             Expanded(
               child: TextField(
                 controller: _discountController,
-                decoration: const InputDecoration(labelText: 'Discount'),
+                decoration: InputDecoration(labelText: S.of(context).discountLabel),
                 keyboardType: TextInputType.number,
                 onChanged: (_) => setState(() {}),
               ),
@@ -274,9 +279,9 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Total',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              S.of(context).totalLabel,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
               _grandTotal.toStringAsFixed(0),
@@ -287,7 +292,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
         if (_editableItems.any((i) => i.assignments.isNotEmpty)) ...[
           const SizedBox(height: 24),
           Text(
-            'Split by friend',
+            S.of(context).splitByFriend,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Divider(),
@@ -313,7 +318,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: _save,
-          child: const Text('Save Receipt'),
+          child: Text(S.of(context).saveReceiptButton),
         ),
       ],
     );

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../data/local/user_storage.dart';
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/friend_share.dart';
 import '../utils/payment_message.dart';
 import '../widgets/bill_share_card.dart';
@@ -78,6 +79,8 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
   }
 
   Future<void> _shareImage() async {
+    final shareText =
+        S.of(context).paymentRequestForFriend(widget.data.friendName);
     setState(() => _sharing = true);
     try {
       final boundary =
@@ -94,7 +97,7 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Payment request for ${widget.data.friendName}',
+        text: shareText,
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -103,6 +106,7 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
 
   Future<void> _shareText() async {
     final message = await buildPaymentRequestMessage(
+      l10n: S.of(context),
       friendName: widget.data.friendName,
       merchant: widget.data.merchant,
       amount: widget.data.amount,
@@ -117,7 +121,7 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Share Payment Request')),
+      appBar: AppBar(title: Text(S.of(context).sharePaymentRequestTitle)),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -151,7 +155,7 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.image_outlined),
-                label: const Text('Share as Image'),
+                label: Text(S.of(context).shareAsImage),
               ),
             ),
             const SizedBox(height: 8),
@@ -160,7 +164,7 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
               child: OutlinedButton.icon(
                 onPressed: _shareText,
                 icon: const Icon(Icons.text_snippet_outlined),
-                label: const Text('Share as Text'),
+                label: Text(S.of(context).shareAsText),
               ),
             ),
             const SizedBox(height: 24),

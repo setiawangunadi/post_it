@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/friend.dart';
 import '../../domain/repositories/friend_repository.dart';
 import '../datasources/friend_local_datasource.dart';
@@ -17,7 +18,7 @@ class FriendRepositoryImpl implements FriendRepository {
       final friends = await localDataSource.getFriends();
       return Right(friends);
     } on CacheException {
-      return const Left(CacheFailure('Failed to load friends'));
+      return Left(CacheFailure(S.current.failedToLoadFriends));
     }
   }
 
@@ -27,7 +28,7 @@ class FriendRepositoryImpl implements FriendRepository {
       await localDataSource.addFriend(name);
       return const Right(null);
     } on CacheException {
-      return const Left(CacheFailure('Failed to save friend'));
+      return Left(CacheFailure(S.current.failedToSaveFriend));
     }
   }
 }

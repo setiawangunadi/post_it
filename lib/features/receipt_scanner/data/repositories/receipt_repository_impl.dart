@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/error/exception.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/receipt.dart';
 import '../../domain/repositories/receipt_repository.dart';
 import '../datasources/receipt_local_datasource.dart';
@@ -56,7 +57,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       await localDataSource.cacheReceipt(toStore);
       return const Right(null);
     } on CacheException {
-      return const Left(CacheFailure('Failed to save receipt'));
+      return Left(CacheFailure(S.current.failedToSaveReceipt));
     }
   }
 
@@ -66,7 +67,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       final receipts = await localDataSource.getCachedReceipts();
       return Right(receipts);
     } on CacheException {
-      return const Left(CacheFailure('Failed to load receipt history'));
+      return Left(CacheFailure(S.current.failedToLoadReceiptHistory));
     }
   }
 
@@ -76,7 +77,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
       await localDataSource.deleteReceipt(id);
       return const Right(null);
     } on CacheException {
-      return const Left(CacheFailure('Failed to delete receipt'));
+      return Left(CacheFailure(S.current.failedToDeleteReceipt));
     }
   }
 

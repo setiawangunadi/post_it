@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../generated/l10n.dart';
 import '../../../friends/domain/entities/friend.dart';
 import '../../../friends/presentation/widgets/friend_picker.dart';
 import '../../domain/entities/receipt.dart';
@@ -68,7 +69,8 @@ class _ReceiptItemTileState extends State<ReceiptItemTile> {
               Expanded(
                 child: TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Item'),
+                  decoration:
+                      InputDecoration(labelText: S.of(context).itemFieldLabel),
                   onChanged: (_) => _emitChange(),
                 ),
               ),
@@ -85,7 +87,8 @@ class _ReceiptItemTileState extends State<ReceiptItemTile> {
                 flex: 2,
                 child: TextField(
                   controller: _qtyController,
-                  decoration: const InputDecoration(labelText: 'Qty'),
+                  decoration:
+                      InputDecoration(labelText: S.of(context).qtyFieldLabel),
                   keyboardType: TextInputType.number,
                   onChanged: (_) => _emitChange(),
                 ),
@@ -95,7 +98,8 @@ class _ReceiptItemTileState extends State<ReceiptItemTile> {
                 flex: 3,
                 child: TextField(
                   controller: _priceController,
-                  decoration: const InputDecoration(labelText: 'Price'),
+                  decoration:
+                      InputDecoration(labelText: S.of(context).priceFieldLabel),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (_) => _emitChange(),

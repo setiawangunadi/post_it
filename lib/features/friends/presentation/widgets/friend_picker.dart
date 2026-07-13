@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/friend.dart';
 
 /// Lets the user split an item's cost across one or more friends.
@@ -25,8 +26,8 @@ class FriendPicker extends StatelessWidget {
     required this.onAddFriend,
   });
 
-  String get _label {
-    if (assignments.isEmpty) return 'Assign';
+  String _label(BuildContext context) {
+    if (assignments.isEmpty) return S.of(context).assignChipLabel;
     if (assignments.length == 1 && assignments.values.first == quantity) {
       return assignments.keys.first;
     }
@@ -60,7 +61,7 @@ class FriendPicker extends StatelessWidget {
         assignments.isEmpty ? Icons.person_add_alt : Icons.person,
         size: 18,
       ),
-      label: Text(_label, overflow: TextOverflow.ellipsis),
+      label: Text(_label(context), overflow: TextOverflow.ellipsis),
       onPressed: () => _openPicker(context),
     );
   }
@@ -181,17 +182,23 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Assign to', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              S.of(context).assignToTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             if (_isSharedMode && _assignments.length > 1) ...[
               const SizedBox(height: 4),
               Text(
-                'Split evenly among ${_assignments.length} people',
+                S.of(context).splitEvenlyAmongHint(_assignments.length),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ] else if (!_isSharedMode && widget.quantity > 1) ...[
               const SizedBox(height: 4),
               Text(
-                '${_remaining.toInt()} of ${widget.quantity} unassigned',
+                S.of(context).remainingOfQuantityHint(
+                      _remaining.toInt(),
+                      widget.quantity,
+                    ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -255,8 +262,8 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                   child: TextField(
                     controller: _controller,
                     enabled: canAddMore,
-                    decoration: const InputDecoration(
-                      labelText: 'New friend name',
+                    decoration: InputDecoration(
+                      labelText: S.of(context).newFriendNameLabel,
                     ),
                     onSubmitted: (_) => _addNewFriend(),
                   ),
@@ -273,7 +280,7 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Done'),
+                child: Text(S.of(context).doneButton),
               ),
             ),
           ],

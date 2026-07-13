@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../generated/l10n.dart';
 import '../../domain/entities/friend_share.dart';
 import '../utils/payment_message.dart';
 
@@ -28,7 +29,7 @@ class AssignedItemsSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "$friendName's items",
+              S.of(context).friendItemsTitle(friendName),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Text(
@@ -38,9 +39,9 @@ class AssignedItemsSheet extends StatelessWidget {
             const SizedBox(height: 12),
             const Divider(),
             if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No items assigned.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(S.of(context).noItemsAssigned),
               )
             else
               ...items.map(

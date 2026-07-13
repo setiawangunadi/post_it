@@ -1,5 +1,6 @@
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../../../../core/error/exception.dart';
+import '../../../../generated/l10n.dart';
 
 abstract class ReceiptOcrDataSource {
   /// Runs on-device text recognition on the image at [imagePath] and
@@ -18,7 +19,7 @@ class ReceiptOcrDataSourceImpl implements ReceiptOcrDataSource {
       final inputImage = InputImage.fromFilePath(imagePath);
       return await _recognizer.processImage(inputImage);
     } catch (_) {
-      throw const ServerException('Failed to recognize text from image');
+      throw ServerException(S.current.failedToRecognizeText);
     }
   }
 

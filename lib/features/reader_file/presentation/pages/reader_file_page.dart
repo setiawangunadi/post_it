@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../generated/l10n.dart';
 import '../../../../injection_container.dart';
 import '../bloc/reader_file_bloc.dart';
 
@@ -12,7 +13,7 @@ class ReaderFilePage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<ReaderFileBloc>()..add(FetchReaderFile(id)),
       child: Scaffold(
-        appBar: AppBar(title: const Text('ReaderFile')),
+        appBar: AppBar(title: Text(S.of(context).readerFileTitle)),
         body: BlocBuilder<ReaderFileBloc, ReaderFileState>(
           builder: (context, state) {
             return switch (state) {

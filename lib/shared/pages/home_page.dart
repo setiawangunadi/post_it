@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../features/receipt_scanner/domain/entities/friend_share.dart';
 import '../../features/receipt_scanner/domain/entities/receipt.dart';
+import '../../generated/l10n.dart';
 import '../../features/receipt_scanner/presentation/bloc/history/receipt_history_bloc.dart';
 import '../../features/receipt_scanner/presentation/pages/receipt_history_page.dart';
 import '../../features/receipt_scanner/presentation/utils/payment_message.dart';
@@ -84,14 +85,14 @@ class _HomeViewState extends State<_HomeView> with RouteAware {
                   _SpendingCard(receipts: receipts),
                   const SizedBox(height: 28),
                   _SectionHeader(
-                    title: 'Recent Receipts',
+                    title: S.of(context).homeRecentReceipts,
                     onSeeAll: () => context.push('/receipt-history'),
                   ),
                   const SizedBox(height: 12),
                   if (receipts.isEmpty)
-                    const _EmptyHint(
+                    _EmptyHint(
                       icon: Icons.receipt_long_outlined,
-                      text: 'No receipts yet. Scan one to get started.',
+                      text: S.of(context).homeEmptyReceiptsHint,
                     )
                   else
                     ...receipts
@@ -99,7 +100,7 @@ class _HomeViewState extends State<_HomeView> with RouteAware {
                         .map((r) => _RecentReceiptCard(receipt: r)),
                   const SizedBox(height: 28),
                   _SectionHeader(
-                    title: 'Payments',
+                    title: S.of(context).paymentsAction,
                     onSeeAll: () => context.push('/payments'),
                   ),
                   const SizedBox(height: 12),
@@ -134,7 +135,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Scan receipts, split the bill with friends.',
+                S.of(context).homeTagline,
                 style: textTheme.bodyMedium,
               ),
             ],
@@ -142,7 +143,7 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           onPressed: onPaymentInfoTap,
-          tooltip: 'Payment Info',
+          tooltip: S.of(context).paymentInfoTooltip,
           icon: const Icon(Icons.account_balance_outlined),
         ),
       ],
@@ -176,7 +177,7 @@ class _SpendingCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total Spending',
+                S.of(context).totalSpendingLabel,
                 style:
                     TextStyle(color: colors.onPrimary.withValues(alpha: 0.85)),
               ),
@@ -197,7 +198,7 @@ class _SpendingCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${receipts.length} receipt${receipts.length == 1 ? '' : 's'} scanned',
+            S.of(context).receiptsScannedCount(receipts.length),
             style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.85)),
           ),
           const SizedBox(height: 20),
@@ -206,7 +207,7 @@ class _SpendingCard extends StatelessWidget {
               Expanded(
                 child: _QuickAction(
                   icon: Icons.camera_alt_outlined,
-                  label: 'Scan',
+                  label: S.of(context).scanAction,
                   onTap: () async {
                     final imagePath = await pickReceiptImage(context);
                     if (imagePath != null && context.mounted) {
@@ -219,7 +220,7 @@ class _SpendingCard extends StatelessWidget {
               Expanded(
                 child: _QuickAction(
                   icon: Icons.history,
-                  label: 'History',
+                  label: S.of(context).historyAction,
                   onTap: () => context.push('/receipt-history'),
                 ),
               ),
@@ -227,7 +228,7 @@ class _SpendingCard extends StatelessWidget {
               Expanded(
                 child: _QuickAction(
                   icon: Icons.people_alt_outlined,
-                  label: 'Payments',
+                  label: S.of(context).paymentsAction,
                   onTap: () => context.push('/payments'),
                 ),
               ),
@@ -303,11 +304,11 @@ class _SectionHeader extends StatelessWidget {
         ),
         TextButton(
           onPressed: onSeeAll,
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('See all'),
-              Icon(Icons.chevron_right, size: 18),
+              Text(S.of(context).seeAll),
+              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
         ),
@@ -339,11 +340,13 @@ class _RecentReceiptCard extends StatelessWidget {
         title: Text(
           receipt.merchantName?.isNotEmpty == true
               ? receipt.merchantName!
-              : 'Receipt',
+              : S.of(context).receiptFallbackName,
         ),
         subtitle: Text(
-          '${DateFormat.yMMMd().format(receipt.scannedAt)} · '
-          '${receipt.items.length} items',
+          S.of(context).receiptItemsSubtitle(
+                DateFormat.yMMMd().format(receipt.scannedAt),
+                receipt.items.length,
+              ),
         ),
         trailing: Text('Rp${formatRupiah(total)}'),
         onTap: () => showModalBottomSheet(
@@ -363,9 +366,9 @@ class _PaymentsPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final balances = calculateFriendBalances(receipts).take(3).toList();
     if (balances.isEmpty) {
-      return const _EmptyHint(
+      return _EmptyHint(
         icon: Icons.people_outline,
-        text: 'Assign items to friends on a receipt to track who owes what.',
+        text: S.of(context).homeEmptyPaymentsHint,
       );
     }
     final colors = Theme.of(context).colorScheme;
@@ -377,11 +380,13 @@ class _PaymentsPreview extends StatelessWidget {
             title: Text(balance.friendName),
             subtitle: Text(
               balance.isSettled
-                  ? 'All settled'
-                  : 'Owes Rp${formatRupiah(balance.totalOwed)}',
+                  ? S.of(context).allSettled
+                  : S.of(context).owesAmount('Rp${formatRupiah(balance.totalOwed)}'),
             ),
             trailing: Chip(
-              label: Text(balance.isSettled ? 'Paid' : 'Unpaid'),
+              label: Text(
+                balance.isSettled ? S.of(context).paidLabel : S.of(context).unpaidLabel,
+              ),
               backgroundColor: balance.isSettled
                   ? colors.tertiaryContainer
                   : colors.errorContainer,
