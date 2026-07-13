@@ -16,6 +16,10 @@ class BillShareCard extends StatelessWidget {
   final double amount;
   final DateTime date;
   final List<AssignedItemDetail> items;
+  final double serviceCharge;
+  final double tax;
+  final double adjustment;
+  final double discount;
   final String? bankName;
   final String? accountNumber;
   final String? accountHolder;
@@ -27,6 +31,10 @@ class BillShareCard extends StatelessWidget {
     required this.amount,
     required this.date,
     required this.items,
+    this.serviceCharge = 0,
+    this.tax = 0,
+    this.adjustment = 0,
+    this.discount = 0,
     this.bankName,
     this.accountNumber,
     this.accountHolder,
@@ -148,6 +156,25 @@ class BillShareCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                ],
+                if (serviceCharge != 0 ||
+                    tax != 0 ||
+                    adjustment != 0 ||
+                    discount != 0) ...[
+                  const SizedBox(height: 10),
+                  const Divider(height: 1),
+                  const SizedBox(height: 10),
+                  if (serviceCharge != 0)
+                    _DetailRow(
+                      'Service Charge',
+                      'Rp${formatRupiah(serviceCharge)}',
+                    ),
+                  if (tax != 0)
+                    _DetailRow('Tax', 'Rp${formatRupiah(tax)}'),
+                  if (adjustment != 0)
+                    _DetailRow('Adjustment', 'Rp${formatRupiah(adjustment)}'),
+                  if (discount != 0)
+                    _DetailRow('Discount', '-Rp${formatRupiah(discount)}'),
                 ],
                 if (bankName?.isNotEmpty ?? false) ...[
                   const SizedBox(height: 10),

@@ -56,6 +56,7 @@ class ReceiptModel extends Receipt {
     super.serviceCharge,
     super.tax,
     super.adjustment,
+    super.discount,
     super.paidStatus,
     required super.rawText,
   });
@@ -71,6 +72,7 @@ class ReceiptModel extends Receipt {
         serviceCharge: receipt.serviceCharge,
         tax: receipt.tax,
         adjustment: receipt.adjustment,
+        discount: receipt.discount,
         paidStatus: receipt.paidStatus,
         rawText: receipt.rawText,
       );
@@ -88,6 +90,7 @@ class ReceiptModel extends Receipt {
       serviceCharge: (json['serviceCharge'] as num?)?.toDouble(),
       tax: (json['tax'] as num?)?.toDouble(),
       adjustment: (json['adjustment'] as num?)?.toDouble(),
+      discount: (json['discount'] as num?)?.toDouble(),
       paidStatus: json['paidStatus'] is Map
           ? (json['paidStatus'] as Map).map(
               (key, value) => MapEntry(key as String, value as bool),
@@ -108,6 +111,7 @@ class ReceiptModel extends Receipt {
         'serviceCharge': serviceCharge,
         'tax': tax,
         'adjustment': adjustment,
+        'discount': discount,
         'paidStatus': paidStatus,
         'rawText': rawText,
       };

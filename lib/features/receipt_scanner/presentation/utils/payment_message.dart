@@ -14,6 +14,10 @@ Future<String> buildPaymentRequestMessage({
   required String friendName,
   required String merchant,
   required double amount,
+  double serviceCharge = 0,
+  double tax = 0,
+  double adjustment = 0,
+  double discount = 0,
 }) async {
   final bankName = await UserStorage.getBankName();
   final accountNumber = await UserStorage.getBankAccountNumber();
@@ -25,6 +29,22 @@ Future<String> buildPaymentRequestMessage({
     ..writeln(
       'Your share of the bill from $merchant is Rp${formatRupiah(amount)}.',
     );
+
+  if (serviceCharge != 0 || tax != 0 || adjustment != 0 || discount != 0) {
+    buffer
+      ..writeln()
+      ..writeln('Breakdown:');
+    if (serviceCharge != 0) {
+      buffer.writeln('Service Charge: Rp${formatRupiah(serviceCharge)}');
+    }
+    if (tax != 0) buffer.writeln('Tax: Rp${formatRupiah(tax)}');
+    if (adjustment != 0) {
+      buffer.writeln('Adjustment: Rp${formatRupiah(adjustment)}');
+    }
+    if (discount != 0) {
+      buffer.writeln('Discount: -Rp${formatRupiah(discount)}');
+    }
+  }
 
   if ((bankName?.isNotEmpty ?? false) || (accountNumber?.isNotEmpty ?? false)) {
     buffer

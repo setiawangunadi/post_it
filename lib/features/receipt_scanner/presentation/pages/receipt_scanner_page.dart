@@ -48,6 +48,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
   final _serviceChargeController = TextEditingController();
   final _taxController = TextEditingController();
   final _adjustmentController = TextEditingController();
+  final _discountController = TextEditingController();
 
   Receipt? _draft;
   List<ReceiptItem> _editableItems = [];
@@ -72,6 +73,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
     _serviceChargeController.dispose();
     _taxController.dispose();
     _adjustmentController.dispose();
+    _discountController.dispose();
     super.dispose();
   }
 
@@ -88,7 +90,8 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
       _itemsTotal +
       (double.tryParse(_serviceChargeController.text) ?? 0) +
       (double.tryParse(_taxController.text) ?? 0) +
-      (double.tryParse(_adjustmentController.text) ?? 0);
+      (double.tryParse(_adjustmentController.text) ?? 0) -
+      (double.tryParse(_discountController.text) ?? 0);
 
   void _save() {
     if (_draft == null) return;
@@ -98,6 +101,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
       serviceCharge: double.tryParse(_serviceChargeController.text),
       tax: double.tryParse(_taxController.text),
       adjustment: double.tryParse(_adjustmentController.text),
+      discount: double.tryParse(_discountController.text),
     );
     context.read<ReceiptScannerBloc>().add(SaveReceiptRequested(receipt));
   }
@@ -118,6 +122,8 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
               _taxController.text = state.receipt.tax?.toStringAsFixed(0) ?? '';
               _adjustmentController.text =
                   state.receipt.adjustment?.toStringAsFixed(0) ?? '';
+              _discountController.text =
+                  state.receipt.discount?.toStringAsFixed(0) ?? '';
             });
           } else if (state is ScannerSaved) {
             context.pushReplacement('/payment-summary', extra: state.receipt);
@@ -226,11 +232,26 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
           ],
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: _adjustmentController,
-          decoration: const InputDecoration(labelText: 'Adjustment'),
-          keyboardType: TextInputType.number,
-          onChanged: (_) => setState(() {}),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _adjustmentController,
+                decoration: const InputDecoration(labelText: 'Adjustment'),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _discountController,
+                decoration: const InputDecoration(labelText: 'Discount'),
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
         ),
         const Divider(),
         Row(
@@ -258,6 +279,7 @@ class _ReceiptScannerViewState extends State<_ReceiptScannerView> {
             serviceCharge: double.tryParse(_serviceChargeController.text),
             tax: double.tryParse(_taxController.text),
             adjustment: double.tryParse(_adjustmentController.text),
+            discount: double.tryParse(_discountController.text),
           ).map(
             (share) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),

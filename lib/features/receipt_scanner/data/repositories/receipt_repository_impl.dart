@@ -36,6 +36,7 @@ class ReceiptRepositoryImpl implements ReceiptRepository {
         serviceCharge: parsed.serviceCharge,
         tax: parsed.tax,
         adjustment: parsed.adjustment,
+        discount: parsed.discount,
         rawText: recognized.text,
       );
       return Right(receipt);

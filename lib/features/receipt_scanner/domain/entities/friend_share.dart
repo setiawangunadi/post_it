@@ -9,6 +9,16 @@ class FriendShare extends Equatable {
   final double itemsTotal;
   final double proratedExtra;
 
+  /// This friend's proportional slice of each receipt-level charge —
+  /// broken out from [proratedExtra] so callers (e.g. the share card) can
+  /// show a line-item breakdown rather than just the combined total.
+  /// [proratedDiscount] is a non-negative magnitude, already subtracted
+  /// out of [proratedExtra] and [total].
+  final double proratedServiceCharge;
+  final double proratedTax;
+  final double proratedAdjustment;
+  final double proratedDiscount;
+
   /// Number of item *units* assigned to this friend (a qty-2 item split
   /// 1/1 between two friends counts as 1 unit each) — not the receipt's
   /// total item count.
@@ -18,29 +28,45 @@ class FriendShare extends Equatable {
     required this.friendName,
     required this.itemsTotal,
     required this.proratedExtra,
+    this.proratedServiceCharge = 0,
+    this.proratedTax = 0,
+    this.proratedAdjustment = 0,
+    this.proratedDiscount = 0,
     required this.itemCount,
   });
 
   double get total => itemsTotal + proratedExtra;
 
   @override
-  List<Object?> get props => [friendName, itemsTotal, proratedExtra, itemCount];
+  List<Object?> get props => [
+        friendName,
+        itemsTotal,
+        proratedExtra,
+        proratedServiceCharge,
+        proratedTax,
+        proratedAdjustment,
+        proratedDiscount,
+        itemCount,
+      ];
 }
 
 /// Splits [items] by [ReceiptItem.assignments] (per-unit friend shares of
-/// each item's quantity), then prorates [serviceCharge], [tax] and
-/// [adjustment] across friends in proportion to each friend's share of the
-/// items subtotal — so someone who ordered a pricier dish (or more units of
-/// a shared one) also carries a proportionally larger slice of the shared
-/// service charge/tax rather than an even split.
+/// each item's quantity), then prorates [serviceCharge], [tax],
+/// [adjustment] and [discount] across friends in proportion to each
+/// friend's share of the items subtotal — so someone who ordered a pricier
+/// dish (or more units of a shared one) also carries a proportionally
+/// larger slice of the shared service charge/tax (and a proportionally
+/// larger slice of the discount) rather than an even split.
 List<FriendShare> calculateFriendShares(
   List<ReceiptItem> items, {
   double? serviceCharge,
   double? tax,
   double? adjustment,
+  double? discount,
 }) {
   final itemsTotal = items.fold(0.0, (sum, item) => sum + item.lineTotal);
-  final extra = (serviceCharge ?? 0) + (tax ?? 0) + (adjustment ?? 0);
+  final extra =
+      (serviceCharge ?? 0) + (tax ?? 0) + (adjustment ?? 0) - (discount ?? 0);
 
   final totalsByFriend = <String, double>{};
   final itemCountByFriend = <String, int>{};
@@ -68,6 +94,10 @@ List<FriendShare> calculateFriendShares(
       friendName: entry.key,
       itemsTotal: entry.value,
       proratedExtra: ratio * extra,
+      proratedServiceCharge: ratio * (serviceCharge ?? 0),
+      proratedTax: ratio * (tax ?? 0),
+      proratedAdjustment: ratio * (adjustment ?? 0),
+      proratedDiscount: ratio * (discount ?? 0),
       itemCount: itemCountByFriend[entry.key] ?? 0,
     );
   }).toList();
@@ -179,6 +209,7 @@ List<FriendBalance> calculateFriendBalances(List<Receipt> receipts) {
       serviceCharge: receipt.serviceCharge,
       tax: receipt.tax,
       adjustment: receipt.adjustment,
+      discount: receipt.discount,
     ).where((s) => s.friendName != unassignedFriendName);
 
     for (final share in shares) {

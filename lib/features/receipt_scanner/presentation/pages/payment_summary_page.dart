@@ -30,6 +30,7 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
         serviceCharge: _receipt.serviceCharge,
         tax: _receipt.tax,
         adjustment: _receipt.adjustment,
+        discount: _receipt.discount,
       ).where((share) => share.friendName != unassignedFriendName).toList();
 
   double get _unassignedAmount => calculateFriendShares(
@@ -37,6 +38,7 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
         serviceCharge: _receipt.serviceCharge,
         tax: _receipt.tax,
         adjustment: _receipt.adjustment,
+        discount: _receipt.discount,
       )
           .where((share) => share.friendName == unassignedFriendName)
           .fold(0.0, (sum, share) => sum + share.total);
@@ -62,6 +64,10 @@ class _PaymentSummaryPageState extends State<PaymentSummaryPage> {
             amount: share.total,
             date: _receipt.scannedAt,
             items: getAssignedItems(_receipt.items, share.friendName),
+            serviceCharge: share.proratedServiceCharge,
+            tax: share.proratedTax,
+            adjustment: share.proratedAdjustment,
+            discount: share.proratedDiscount,
           ),
         ),
       ),

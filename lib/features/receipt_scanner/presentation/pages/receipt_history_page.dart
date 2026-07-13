@@ -162,6 +162,17 @@ class ReceiptDetailSheet extends StatelessWidget {
                   ],
                 ),
               ),
+            if (receipt.discount != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Discount'),
+                    Text('-${receipt.discount!.toStringAsFixed(0)}'),
+                  ],
+                ),
+              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -187,6 +198,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                 serviceCharge: receipt.serviceCharge,
                 tax: receipt.tax,
                 adjustment: receipt.adjustment,
+                discount: receipt.discount,
               ).map(
                 (share) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),

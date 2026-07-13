@@ -21,12 +21,24 @@ class BillShareData {
   final DateTime date;
   final List<AssignedItemDetail> items;
 
+  /// This friend's prorated slice of each receipt-level charge. A
+  /// [discount] is a non-negative magnitude, already netted out of
+  /// [amount].
+  final double serviceCharge;
+  final double tax;
+  final double adjustment;
+  final double discount;
+
   const BillShareData({
     required this.friendName,
     required this.merchant,
     required this.amount,
     required this.date,
     required this.items,
+    this.serviceCharge = 0,
+    this.tax = 0,
+    this.adjustment = 0,
+    this.discount = 0,
   });
 
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
@@ -94,6 +106,10 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
       friendName: widget.data.friendName,
       merchant: widget.data.merchant,
       amount: widget.data.amount,
+      serviceCharge: widget.data.serviceCharge,
+      tax: widget.data.tax,
+      adjustment: widget.data.adjustment,
+      discount: widget.data.discount,
     );
     await Share.share(message);
   }
@@ -114,6 +130,10 @@ class _ShareBillCardPageState extends State<ShareBillCardPage> {
                 amount: widget.data.amount,
                 date: widget.data.date,
                 items: widget.data.items,
+                serviceCharge: widget.data.serviceCharge,
+                tax: widget.data.tax,
+                adjustment: widget.data.adjustment,
+                discount: widget.data.discount,
                 bankName: _bankName,
                 accountNumber: _accountNumber,
                 accountHolder: _accountHolder,

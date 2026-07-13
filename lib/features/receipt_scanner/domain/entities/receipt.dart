@@ -54,6 +54,10 @@ class Receipt extends Equatable {
   final double? tax;
   final double? adjustment;
 
+  /// Amount deducted off the items subtotal, stored as a non-negative
+  /// magnitude (subtracted when computing totals, never added).
+  final double? discount;
+
   /// Whether each friend (by name, matching [ReceiptItem.assignments] keys)
   /// has paid their share of this receipt.
   final Map<String, bool> paidStatus;
@@ -69,6 +73,7 @@ class Receipt extends Equatable {
     this.serviceCharge,
     this.tax,
     this.adjustment,
+    this.discount,
     this.paidStatus = const {},
     required this.rawText,
   });
@@ -83,6 +88,7 @@ class Receipt extends Equatable {
     double? serviceCharge,
     double? tax,
     double? adjustment,
+    double? discount,
     Map<String, bool>? paidStatus,
     String? rawText,
   }) {
@@ -96,6 +102,7 @@ class Receipt extends Equatable {
       serviceCharge: serviceCharge ?? this.serviceCharge,
       tax: tax ?? this.tax,
       adjustment: adjustment ?? this.adjustment,
+      discount: discount ?? this.discount,
       paidStatus: paidStatus ?? this.paidStatus,
       rawText: rawText ?? this.rawText,
     );
@@ -112,6 +119,7 @@ class Receipt extends Equatable {
         serviceCharge,
         tax,
         adjustment,
+        discount,
         paidStatus,
         rawText,
       ];

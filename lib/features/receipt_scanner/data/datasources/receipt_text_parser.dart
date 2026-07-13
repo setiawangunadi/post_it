@@ -10,6 +10,11 @@ class ParsedReceipt {
   final double? tax;
   final double? adjustment;
 
+  /// Amount deducted off the subtotal, stored as a non-negative magnitude
+  /// (e.g. a "-124.000" discount line is captured as `124000`) so callers
+  /// can uniformly subtract it when computing totals.
+  final double? discount;
+
   const ParsedReceipt({
     this.merchantName,
     required this.items,
@@ -17,6 +22,7 @@ class ParsedReceipt {
     this.serviceCharge,
     this.tax,
     this.adjustment,
+    this.discount,
   });
 }
 
@@ -56,7 +62,11 @@ class ReceiptTextParser {
     caseSensitive: false,
   );
 
-  static final _qtyLabel = RegExp(r'^(\d+)\s*[xX]\s*([\d.,]+)$');
+  // The unit price is often prefixed with "@" (e.g. "1x @49.000") rather
+  // than a bare "1x 49.000" — without tolerating it here, every item on
+  // that receipt style fails to match, and its qty/price text leaks into
+  // the item name instead of being consumed as a label.
+  static final _qtyLabel = RegExp(r'^(\d+)\s*[xX]\s*@?\s*([\d.,]+)$');
 
   // OCR on thermal-printer receipts frequently confuses a leading "1" with
   // a lowercase "l" or capital "I" right before the "x" quantity marker
@@ -64,28 +74,42 @@ class ReceiptTextParser {
   static String _normalizeQty(String text) =>
       text.replaceFirst(RegExp(r'^[lI](?=\s*[xX])'), '1');
 
-  static final _exactTotal = RegExp(r'^total$', caseSensitive: false);
-
-  // Service charge, tax/PPN and adjustment are captured as their own fields
-  // rather than discarded — kept as separate regexes (instead of folding
-  // into _summaryLabel) so the parsing logic can branch on them
+  // Service charge, tax/PPN, adjustment and discount are captured as their
+  // own fields rather than discarded — kept as separate regexes (instead of
+  // folding into _summaryLabel) so the parsing logic can branch on them
   // specifically.
   static final _serviceChargeLabel = RegExp(
     r'^service\s*charge\b',
     caseSensitive: false,
   );
-  static final _taxLabel = RegExp(r'^(tax|ppn)\b', caseSensitive: false);
+  // "PB1" is a common label for restaurant/F&B tax on Indonesian receipts.
+  static final _taxLabel =
+      RegExp(r'^(tax|ppn|pb\s*1)\b', caseSensitive: false);
   static final _adjustmentLabel =
       RegExp(r'^adjustment\b', caseSensitive: false);
+
+  // Unlike the other summary regexes, this isn't start-anchored: discount
+  // labels are often prefixed with a qualifier (e.g. "Employee Disc",
+  // "Member Discount") rather than starting with the keyword itself.
+  static final _discountLabel = RegExp(
+    r'\bdisc(?:ount)?\b|\bdiskon\b',
+    caseSensitive: false,
+  );
 
   // "Subtotal" is deliberately excluded from _isLabelShaped (see below):
   // its value is never used, and on receipts where the label's OCR
   // bounding box is noisy it can otherwise "steal" the amount that
   // actually belongs to the next row (Service Charge), cascading every
   // field after it down by one.
+  //
+  // The payment-method tokens (cash/card/etc.) aren't start-anchored since
+  // they're frequently prefixed (e.g. "DEBIT CARD BCA"), but are still
+  // wrapped in \b so they can't match as a substring of an unrelated word
+  // (e.g. "card" inside "Postcard").
   static final _summaryLabel = RegExp(
-    r'^(sub\s*total|total\s*item|'
-    r'tender|change|kembali|cash|tunai|card|kartu|diskon|discount)\b',
+    r'^(sub\s*total|total\s*item)\b|'
+    r'\b(tender|change|kembali|cash|tunai|card|kartu|debit|credit|kredit|'
+    r'transfer|qris|bayar)\b',
     caseSensitive: false,
   );
 
@@ -112,8 +136,10 @@ class ReceiptTextParser {
   );
   static final _colTotal = RegExp(r'^(total|subtotal)$', caseSensitive: false);
 
+  // Tolerates a trailing colon (e.g. "Grand Total :"), common on
+  // thermal-printer receipts where every row is "Label : value".
   static final _grandTotalLabel = RegExp(
-    r'^(total\s*keseluruhan|grand\s*total|total)$',
+    r'^(total\s*keseluruhan|grand\s*total|total)\s*:?\s*$',
     caseSensitive: false,
   );
 
@@ -149,40 +175,8 @@ class ReceiptTextParser {
       }
     }
 
-    final labelForAmount = <TextLine, TextLine?>{};
-    final usedLabels = <TextLine>{};
-    for (final amount in amountLines) {
-      final amountCenter =
-          amount.boundingBox.top + amount.boundingBox.height / 2;
-
-      // Pass 1: only consider lines that structurally look like a row
-      // label ("1x 28.000", "Total", "Tax", ...). A plain item-name line
-      // (e.g. a second line of a wrapped name) can sometimes sit
-      // vertically closer to the amount than the real label due to photo
-      // skew, so unrestricted nearest-neighbor picks the wrong line —
-      // restricting the search to label-shaped text avoids that.
-      TextLine? best = _closestCandidate(
-        amount,
-        amountCenter,
-        textLines,
-        usedLabels,
-        requireLabelShape: true,
-      );
-
-      // Pass 2: fall back to the closest text line of any shape, for
-      // receipts where the item name and amount share a single row with
-      // no separate quantity line.
-      best ??= _closestCandidate(
-        amount,
-        amountCenter,
-        textLines,
-        usedLabels,
-        requireLabelShape: false,
-      );
-
-      labelForAmount[amount] = best;
-      if (best != null) usedLabels.add(best);
-    }
+    final labelForAmount = _pairAmountsWithLabels(amountLines, textLines);
+    final usedLabels = labelForAmount.values.whereType<TextLine>().toSet();
 
     final items = <ReceiptItem>[];
     final nameBuffer = <String>[];
@@ -190,6 +184,7 @@ class ReceiptTextParser {
     double? serviceCharge;
     double? tax;
     double? adjustment;
+    double? discount;
     String? merchantName;
 
     for (final line in lines) {
@@ -207,7 +202,7 @@ class ReceiptTextParser {
         final amount = _fullAmountMatch(text)!;
         final label = labelForAmount[line]?.text.trim() ?? '';
 
-        if (_exactTotal.hasMatch(label)) {
+        if (_grandTotalLabel.hasMatch(label)) {
           total = amount;
           nameBuffer.clear();
           continue;
@@ -224,6 +219,13 @@ class ReceiptTextParser {
         }
         if (_adjustmentLabel.hasMatch(label)) {
           adjustment = amount;
+          nameBuffer.clear();
+          continue;
+        }
+        if (_discountLabel.hasMatch(label)) {
+          // Stored as a positive magnitude regardless of whether the
+          // printed value was already negative (e.g. "-124.000").
+          discount = amount.abs();
           nameBuffer.clear();
           continue;
         }
@@ -274,7 +276,8 @@ class ReceiptTextParser {
           _summaryLabel.hasMatch(text) ||
           _serviceChargeLabel.hasMatch(text) ||
           _taxLabel.hasMatch(text) ||
-          _adjustmentLabel.hasMatch(text)) {
+          _adjustmentLabel.hasMatch(text) ||
+          _discountLabel.hasMatch(text)) {
         nameBuffer.clear();
       } else {
         nameBuffer.add(text);
@@ -288,6 +291,7 @@ class ReceiptTextParser {
       serviceCharge: serviceCharge,
       tax: tax,
       adjustment: adjustment,
+      discount: discount,
     );
   }
 
@@ -390,6 +394,7 @@ class ReceiptTextParser {
     double? serviceCharge;
     double? tax;
     double? adjustment;
+    double? discount;
 
     for (final row in rows) {
       final rowAmounts = row
@@ -411,6 +416,10 @@ class ReceiptTextParser {
       }
       if (row.any((l) => _adjustmentLabel.hasMatch(l.text.trim()))) {
         if (rowAmounts.isNotEmpty) adjustment = rowAmounts.last;
+        continue;
+      }
+      if (row.any((l) => _discountLabel.hasMatch(l.text.trim()))) {
+        if (rowAmounts.isNotEmpty) discount = rowAmounts.last.abs();
         continue;
       }
 
@@ -463,6 +472,7 @@ class ReceiptTextParser {
       serviceCharge: serviceCharge,
       tax: tax,
       adjustment: adjustment,
+      discount: discount,
     );
   }
 
@@ -471,40 +481,80 @@ class ReceiptTextParser {
   static bool _isLabelShaped(String text) {
     if (_subtotalLabel.hasMatch(text)) return false;
     return _qtyLabel.hasMatch(_normalizeQty(text)) ||
-        _exactTotal.hasMatch(text) ||
+        _grandTotalLabel.hasMatch(text) ||
         _summaryLabel.hasMatch(text) ||
         _serviceChargeLabel.hasMatch(text) ||
         _taxLabel.hasMatch(text) ||
-        _adjustmentLabel.hasMatch(text);
+        _adjustmentLabel.hasMatch(text) ||
+        _discountLabel.hasMatch(text);
   }
 
-  static TextLine? _closestCandidate(
-    TextLine amount,
-    double amountCenter,
+  /// Pairs each amount line with the row label it belongs to (e.g. "1x
+  /// 28.000" or "Total") by proximity, using a *global* greedy match:
+  /// every eligible (amount, label) pair is considered in ascending
+  /// distance order, so a label always goes to whichever amount is
+  /// genuinely closest to it rather than to whichever amount happens to
+  /// be visited first. This matters on receipts with tightly packed
+  /// summary rows (subtotal, discount, service charge, tax only a few
+  /// pixels apart) — a naive per-amount nearest-neighbor search lets an
+  /// earlier amount "steal" a nearby row's label before that row's own
+  /// (closer) amount gets a chance to claim it, cascading every field
+  /// after it down by one.
+  static Map<TextLine, TextLine?> _pairAmountsWithLabels(
+    Set<TextLine> amountLines,
     List<TextLine> textLines,
-    Set<TextLine> usedLabels, {
-    required bool requireLabelShape,
-  }) {
-    TextLine? best;
-    var bestDistance = double.infinity;
-    for (final candidate in textLines) {
-      if (usedLabels.contains(candidate)) continue;
-      if (candidate.boundingBox.left >= amount.boundingBox.left) continue;
-      final text = candidate.text.trim();
-      if (requireLabelShape && !_isLabelShaped(text)) continue;
+  ) {
+    final labelForAmount = <TextLine, TextLine?>{};
+    final usedLabels = <TextLine>{};
+    final unmatched = amountLines.toSet();
 
-      final center =
-          candidate.boundingBox.top + candidate.boundingBox.height / 2;
-      final distance = (center - amountCenter).abs();
-      final avgHeight =
-          (candidate.boundingBox.height + amount.boundingBox.height) / 2;
-      final threshold = avgHeight * (requireLabelShape ? 2.5 : 0.6);
-      if (avgHeight > 0 && distance < threshold && distance < bestDistance) {
-        bestDistance = distance;
-        best = candidate;
+    // Pass 1: only pair with lines that structurally look like a row
+    // label ("1x 28.000", "Total", "Tax", ...). A plain item-name line
+    // (e.g. a second line of a wrapped name) can sometimes sit vertically
+    // closer to an amount than the real label due to photo skew, so
+    // unrestricted nearest-neighbor picks the wrong line — restricting
+    // the search to label-shaped text avoids that.
+    //
+    // Pass 2: fall back to the closest text line of any shape, for
+    // amounts still unmatched — receipts where the item name and amount
+    // share a single row with no separate quantity line.
+    for (final requireLabelShape in [true, false]) {
+      final candidates = <(TextLine, TextLine, double)>[];
+      for (final amount in unmatched) {
+        final amountCenter =
+            amount.boundingBox.top + amount.boundingBox.height / 2;
+        for (final label in textLines) {
+          if (usedLabels.contains(label)) continue;
+          if (label.boundingBox.left >= amount.boundingBox.left) continue;
+          final text = label.text.trim();
+          if (requireLabelShape && !_isLabelShaped(text)) continue;
+
+          final center = label.boundingBox.top + label.boundingBox.height / 2;
+          final distance = (center - amountCenter).abs();
+          final avgHeight =
+              (label.boundingBox.height + amount.boundingBox.height) / 2;
+          final threshold = avgHeight * (requireLabelShape ? 2.5 : 0.6);
+          if (avgHeight > 0 && distance < threshold) {
+            candidates.add((amount, label, distance));
+          }
+        }
+      }
+      candidates.sort((a, b) => a.$3.compareTo(b.$3));
+
+      for (final (amount, label, _) in candidates) {
+        if (!unmatched.contains(amount) || usedLabels.contains(label)) {
+          continue;
+        }
+        labelForAmount[amount] = label;
+        usedLabels.add(label);
+        unmatched.remove(amount);
       }
     }
-    return best;
+
+    for (final amount in unmatched) {
+      labelForAmount[amount] = null;
+    }
+    return labelForAmount;
   }
 
   static bool _looksRounded(double value) => (value % 100).abs() < 0.5;
