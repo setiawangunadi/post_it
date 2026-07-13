@@ -131,7 +131,7 @@ class BillShareCard extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Items (${items.fold(0, (sum, i) => sum + i.quantity)})',
+                      'Items (${_formatCount(items.fold(0.0, (sum, i) => sum + i.quantity))})',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 13,
@@ -218,7 +218,7 @@ class _ItemRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${item.name} x${item.quantity}',
+              '${item.name} ${formatQty(item.quantity)}',
               style: const TextStyle(fontSize: 12.5),
               overflow: TextOverflow.ellipsis,
             ),
@@ -233,6 +233,11 @@ class _ItemRow extends StatelessWidget {
     );
   }
 }
+
+// A total across items can be fractional (e.g. 2.5 when one of the items
+// is a shared half-unit) — shown with one decimal rather than a raw double.
+String _formatCount(double count) =>
+    count == count.roundToDouble() ? count.toInt().toString() : count.toStringAsFixed(1);
 
 class _DetailRow extends StatelessWidget {
   final String label;

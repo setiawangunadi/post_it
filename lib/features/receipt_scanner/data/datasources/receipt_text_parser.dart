@@ -65,14 +65,25 @@ class ReceiptTextParser {
   // The unit price is often prefixed with "@" (e.g. "1x @49.000") rather
   // than a bare "1x 49.000" — without tolerating it here, every item on
   // that receipt style fails to match, and its qty/price text leaks into
-  // the item name instead of being consumed as a label.
-  static final _qtyLabel = RegExp(r'^(\d+)\s*[xX]\s*@?\s*([\d.,]+)$');
+  // the item name instead of being consumed as a label. Some POS software
+  // (e.g. karaoke/venue booking systems) drops the "x"/"@" marker entirely
+  // and prints just "1  310,000" — the qty and price separated by
+  // whitespace alone — so that's accepted too, but only via an *actual*
+  // whitespace gap (never zero-width) so a plain multi-digit amount like
+  // "1310.000" can't be misread as qty "1" + price "310.000".
+  static final _qtyLabel =
+      RegExp(r'^(\d+)(?:\s*[xX]\s*@?\s*|\s+)([\d.,]+)$');
 
   // OCR on thermal-printer receipts frequently confuses a leading "1" with
   // a lowercase "l" or capital "I" right before the "x" quantity marker
   // (e.g. "lx 34.000" instead of "1x 34.000").
   static String _normalizeQty(String text) =>
       text.replaceFirst(RegExp(r'^[lI](?=\s*[xX])'), '1');
+
+  // Some receipts prefix each item name with a bullet-style character
+  // (e.g. ".PAKET FAMILY A"), which isn't part of the actual item name.
+  static String _stripLeadingBullet(String text) =>
+      text.replaceFirst(RegExp(r'^[.\-*•]\s*'), '');
 
   // Service charge, tax/PPN, adjustment and discount are captured as their
   // own fields rather than discarded — kept as separate regexes (instead of
@@ -114,11 +125,36 @@ class ReceiptTextParser {
   );
 
   static final _headerSkip = RegExp(
-    r'^(date|order\s*number|customer|sales\s*type|user|cashier|instagram|'
-    r'tel\.?|telp\.?|npwp|www\.|jl\.|alamat|table|invoice|receipt|kasir|'
-    r'no\.?\s*(bon|receipt))\b',
+    r'^(date\s*/?\s*time|date|order\s*number|customer(\s*name)?|'
+    r'cust\.?\s*name|sales\s*type|user|cashier|instagram|'
+    r'tel\.?|telp\.?|npwp|www\.|jl\.|alamat|room\s*/?\s*table|table|'
+    r'item\s*name|amount|invoice|receipt|kasir|no\.?\s*(bon|receipt))\b',
     caseSensitive: false,
   );
+
+  // A bare date and/or time value printed as its own OCR line, separate
+  // from its label (e.g. "DATE/TIME" and "2026-07-12 / 19:53:10" land as
+  // two distinct lines side by side) — dropped the same way the label is,
+  // rather than leaking into whichever item name follows.
+  static final _dateTimeValueOnly = RegExp(
+    r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|^\d{1,2}:\d{2}(?::\d{2})?$',
+  );
+
+  // A subtotal broken down by category (e.g. venue/booking receipts that
+  // split "PAKET/PROMO" — package deals — from "FOOD & DRINK") rather than
+  // one single "Subtotal" line. Discarded the same way subtotal is: the
+  // combined items list is already the source of truth, so keeping these
+  // would double-count everything they summarize as a bogus extra item.
+  static final _categorySubtotalLabel = RegExp(
+    r'^(paket\s*/?\s*promo|food\s*&?\s*drink|f\s*&\s*b)\b',
+    caseSensitive: false,
+  );
+
+  // A bare per-item percentage annotation (e.g. a "0%" discount/tax column
+  // printed on its own line above the qty/price row) — not a value this
+  // parser tracks per item, so it's dropped outright rather than being
+  // folded into the following item's name.
+  static final _percentOnly = RegExp(r'^\d+(?:\.\d+)?%$');
 
   static final _separatorOnly = RegExp(r'^[\-=*_.\s]+$');
 
@@ -142,6 +178,23 @@ class ReceiptTextParser {
     r'^(total\s*keseluruhan|grand\s*total|total)\s*:?\s*$',
     caseSensitive: false,
   );
+
+  // OCR occasionally splits "TOTAL" into two tokens with a stray space
+  // (e.g. "TOTA L"), which fails the strict match above. Checked against a
+  // whitespace-collapsed copy of the label as a fallback.
+  static final _grandTotalLabelCompact = RegExp(
+    r'^(totalkeseluruhan|grandtotal|total):?$',
+    caseSensitive: false,
+  );
+  static bool _isGrandTotalLabel(String label) =>
+      _grandTotalLabel.hasMatch(label) ||
+      _grandTotalLabelCompact.hasMatch(label.replaceAll(RegExp(r'\s+'), ''));
+
+  // Lines that carry no useful information for this parser and should be
+  // dropped outright — never added to an item name, never eligible to be
+  // picked as anyone's label.
+  static bool _isNoiseLine(String text) =>
+      _percentOnly.hasMatch(text) || _dateTimeValueOnly.hasMatch(text);
 
   static final _documentTitleSkip = RegExp(
     r'^(invoice|tagihan|receipt|struk|nota|faktur|bill)$',
@@ -167,7 +220,7 @@ class ReceiptTextParser {
     final textLines = <TextLine>[];
     for (final line in lines) {
       final text = line.text.trim();
-      if (text.isEmpty) continue;
+      if (text.isEmpty || _isNoiseLine(text)) continue;
       if (_fullAmountMatch(text) != null) {
         amountLines.add(line);
       } else {
@@ -189,12 +242,19 @@ class ReceiptTextParser {
 
     for (final line in lines) {
       final text = line.text.trim();
-      if (text.isEmpty) continue;
-
-      merchantName ??= _separatorOnly.hasMatch(text) ? null : text;
+      if (text.isEmpty || _isNoiseLine(text)) continue;
 
       if (_separatorOnly.hasMatch(text)) {
         nameBuffer.clear();
+        continue;
+      }
+
+      // The merchant name line is captured once, separately — it must not
+      // also leak into the first item's name, which happens on receipts
+      // whose header/item-list separator line isn't recognized as text by
+      // OCR (so nothing else would otherwise clear the buffer first).
+      if (merchantName == null) {
+        merchantName = text;
         continue;
       }
 
@@ -202,7 +262,7 @@ class ReceiptTextParser {
         final amount = _fullAmountMatch(text)!;
         final label = labelForAmount[line]?.text.trim() ?? '';
 
-        if (_grandTotalLabel.hasMatch(label)) {
+        if (_isGrandTotalLabel(label)) {
           total = amount;
           nameBuffer.clear();
           continue;
@@ -229,7 +289,9 @@ class ReceiptTextParser {
           nameBuffer.clear();
           continue;
         }
-        if (_summaryLabel.hasMatch(label) || _headerSkip.hasMatch(label)) {
+        if (_summaryLabel.hasMatch(label) ||
+            _headerSkip.hasMatch(label) ||
+            _categorySubtotalLabel.hasMatch(label)) {
           nameBuffer.clear();
           continue;
         }
@@ -277,10 +339,11 @@ class ReceiptTextParser {
           _serviceChargeLabel.hasMatch(text) ||
           _taxLabel.hasMatch(text) ||
           _adjustmentLabel.hasMatch(text) ||
-          _discountLabel.hasMatch(text)) {
+          _discountLabel.hasMatch(text) ||
+          _categorySubtotalLabel.hasMatch(text)) {
         nameBuffer.clear();
       } else {
-        nameBuffer.add(text);
+        nameBuffer.add(_stripLeadingBullet(text));
       }
     }
 
@@ -402,7 +465,7 @@ class ReceiptTextParser {
           .whereType<double>()
           .toList();
 
-      if (row.any((l) => _grandTotalLabel.hasMatch(l.text.trim()))) {
+      if (row.any((l) => _isGrandTotalLabel(l.text.trim()))) {
         if (rowAmounts.isNotEmpty) total = rowAmounts.last;
         continue;
       }
@@ -420,6 +483,9 @@ class ReceiptTextParser {
       }
       if (row.any((l) => _discountLabel.hasMatch(l.text.trim()))) {
         if (rowAmounts.isNotEmpty) discount = rowAmounts.last.abs();
+        continue;
+      }
+      if (row.any((l) => _categorySubtotalLabel.hasMatch(l.text.trim()))) {
         continue;
       }
 
@@ -481,12 +547,13 @@ class ReceiptTextParser {
   static bool _isLabelShaped(String text) {
     if (_subtotalLabel.hasMatch(text)) return false;
     return _qtyLabel.hasMatch(_normalizeQty(text)) ||
-        _grandTotalLabel.hasMatch(text) ||
+        _isGrandTotalLabel(text) ||
         _summaryLabel.hasMatch(text) ||
         _serviceChargeLabel.hasMatch(text) ||
         _taxLabel.hasMatch(text) ||
         _adjustmentLabel.hasMatch(text) ||
-        _discountLabel.hasMatch(text);
+        _discountLabel.hasMatch(text) ||
+        _categorySubtotalLabel.hasMatch(text);
   }
 
   /// Pairs each amount line with the row label it belongs to (e.g. "1x
@@ -535,7 +602,17 @@ class ReceiptTextParser {
               (label.boundingBox.height + amount.boundingBox.height) / 2;
           final threshold = avgHeight * (requireLabelShape ? 2.5 : 0.6);
           if (avgHeight > 0 && distance < threshold) {
-            candidates.add((amount, label, distance));
+            // Handheld-camera perspective on these receipts consistently
+            // skews the two columns so a row's label sits slightly *below*
+            // its own amount, not above (and the skew often grows further
+            // down the photo). Deprioritizing the opposite direction (but
+            // not excluding it outright) stops a nearby wrong neighbor
+            // above an amount from narrowly outranking the receipt's own
+            // label below it — the failure mode that mismatched "TAX &
+            // SERV" with the *next* row's (Total's) amount on a tightly
+            // packed, heavily skewed summary block.
+            final score = center >= amountCenter ? distance : distance * 3;
+            candidates.add((amount, label, score));
           }
         }
       }

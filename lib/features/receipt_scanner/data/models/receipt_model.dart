@@ -17,15 +17,17 @@ class ReceiptItemModel extends ReceiptItem {
 
   factory ReceiptItemModel.fromJson(Map<String, dynamic> json) {
     final quantity = json['quantity'] as int;
-    Map<String, int> assignments;
+    Map<String, double> assignments;
     if (json['assignments'] is Map) {
+      // Values were saved as int before fractional (cost-split) assignments
+      // existed — `(value as num).toDouble()` reads both old and new data.
       assignments = (json['assignments'] as Map).map(
-        (key, value) => MapEntry(key as String, value as int),
+        (key, value) => MapEntry(key as String, (value as num).toDouble()),
       );
     } else if (json['assignedTo'] is String) {
       // Migrate receipts saved before per-unit splitting existed, where the
       // whole item was assigned to a single friend.
-      assignments = {json['assignedTo'] as String: quantity};
+      assignments = {json['assignedTo'] as String: quantity.toDouble()};
     } else {
       assignments = const {};
     }

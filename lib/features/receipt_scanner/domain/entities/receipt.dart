@@ -8,7 +8,11 @@ class ReceiptItem extends Equatable {
   /// How many units of [quantity] each friend is assigned, e.g. a qty-2 item
   /// split as `{'Budi': 1, 'Sinta': 1}`. Units not covered by any entry here
   /// are unassigned. Values sum to at most [quantity].
-  final Map<String, int> assignments;
+  ///
+  /// Fractional values let a single indivisible unit (typically a qty-1
+  /// item) be *cost*-split rather than unit-split, e.g. `{'Budi': 0.5,
+  /// 'Sinta': 0.5}` for two people evenly sharing one dish.
+  final Map<String, double> assignments;
 
   const ReceiptItem({
     required this.name,
@@ -19,17 +23,17 @@ class ReceiptItem extends Equatable {
 
   double get lineTotal => price * quantity;
 
-  int get assignedQuantity =>
+  double get assignedQuantity =>
       assignments.values.fold(0, (sum, qty) => sum + qty);
 
-  int get unassignedQuantity =>
-      (quantity - assignedQuantity).clamp(0, quantity);
+  double get unassignedQuantity =>
+      (quantity - assignedQuantity).clamp(0, quantity).toDouble();
 
   ReceiptItem copyWith({
     String? name,
     int? quantity,
     double? price,
-    Map<String, int>? assignments,
+    Map<String, double>? assignments,
   }) {
     return ReceiptItem(
       name: name ?? this.name,

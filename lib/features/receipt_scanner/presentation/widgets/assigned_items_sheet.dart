@@ -50,7 +50,7 @@ class AssignedItemsSheet extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text('${item.name} x${item.quantity}'),
+                        child: Text('${item.name} ${formatQty(item.quantity)}'),
                       ),
                       Text('Rp${formatRupiah(item.amount)}'),
                     ],

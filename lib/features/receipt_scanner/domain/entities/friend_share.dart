@@ -20,9 +20,10 @@ class FriendShare extends Equatable {
   final double proratedDiscount;
 
   /// Number of item *units* assigned to this friend (a qty-2 item split
-  /// 1/1 between two friends counts as 1 unit each) — not the receipt's
+  /// 1/1 between two friends counts as 1 unit each; a qty-1 item split
+  /// evenly between two friends counts as 0.5 each) — not the receipt's
   /// total item count.
-  final int itemCount;
+  final double itemCount;
 
   const FriendShare({
     required this.friendName,
@@ -69,7 +70,7 @@ List<FriendShare> calculateFriendShares(
       (serviceCharge ?? 0) + (tax ?? 0) + (adjustment ?? 0) - (discount ?? 0);
 
   final totalsByFriend = <String, double>{};
-  final itemCountByFriend = <String, int>{};
+  final itemCountByFriend = <String, double>{};
   for (final item in items) {
     for (final entry in item.assignments.entries) {
       final name = entry.key.trim();
@@ -113,7 +114,7 @@ List<FriendShare> calculateFriendShares(
 /// One item (or partial quantity of one) assigned to a specific friend.
 class AssignedItemDetail extends Equatable {
   final String name;
-  final int quantity;
+  final double quantity;
   final double amount;
 
   const AssignedItemDetail({
@@ -153,7 +154,7 @@ class FriendReceiptContribution extends Equatable {
   final Receipt receipt;
   final double amount;
   final bool paid;
-  final int itemCount;
+  final double itemCount;
 
   const FriendReceiptContribution({
     required this.receipt,

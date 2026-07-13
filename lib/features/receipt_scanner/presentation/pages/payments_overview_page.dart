@@ -74,7 +74,7 @@ FriendShare _shareFor(
   Receipt receipt,
   String friendName, {
   required double fallbackAmount,
-  required int fallbackItemCount,
+  required double fallbackItemCount,
 }) {
   return calculateFriendShares(
     receipt.items,

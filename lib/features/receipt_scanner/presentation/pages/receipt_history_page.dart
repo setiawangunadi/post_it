@@ -8,6 +8,7 @@ import '../../../../injection_container.dart';
 import '../../domain/entities/friend_share.dart';
 import '../../domain/entities/receipt.dart';
 import '../bloc/history/receipt_history_bloc.dart';
+import '../utils/payment_message.dart';
 
 class ReceiptHistoryPage extends StatelessWidget {
   const ReceiptHistoryPage({super.key});
@@ -119,7 +120,7 @@ class ReceiptDetailSheet extends StatelessWidget {
                       child: Text(
                         item.assignments.isNotEmpty
                             ? '${item.name} x${item.quantity}  ·  '
-                                '${item.assignments.entries.map((e) => '${e.key} x${e.value}').join(', ')}'
+                                '${item.assignments.entries.map((e) => '${e.key} ${formatQty(e.value)}').join(', ')}'
                             : '${item.name} x${item.quantity}',
                       ),
                     ),

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/friend.dart';
 
-/// Lets the user split an item's quantity across one or more friends. For a
-/// qty-1 item this behaves like a plain single-select; for qty>1 it exposes
-/// per-friend quantity steppers so e.g. a shared appetizer can be split.
+/// Lets the user split an item's cost across one or more friends.
+///
+/// - For a qty-1 item there's exactly one physical unit, so it can't be
+///   divided by count — tapping a friend adds them to an evenly-split
+///   group instead (e.g. two friends sharing one dish each carry 50% of
+///   its cost).
+/// - For qty>1, per-friend quantity steppers assign whole units instead
+///   (e.g. 2 of 3 fries orders to Bob, 1 to Ann).
 class FriendPicker extends StatelessWidget {
   final List<Friend> friends;
   final int quantity;
-  final Map<String, int> assignments;
-  final ValueChanged<Map<String, int>> onAssignmentsChanged;
+  final Map<String, double> assignments;
+  final ValueChanged<Map<String, double>> onAssignmentsChanged;
   final ValueChanged<String> onAddFriend;
 
   const FriendPicker({
@@ -25,7 +30,13 @@ class FriendPicker extends StatelessWidget {
     if (assignments.length == 1 && assignments.values.first == quantity) {
       return assignments.keys.first;
     }
-    return assignments.entries.map((e) => '${e.key} x${e.value}').join(', ');
+    if (quantity == 1) {
+      // Shared evenly — names alone read more naturally than "x0.5".
+      return assignments.keys.join(', ');
+    }
+    return assignments.entries
+        .map((e) => '${e.key} x${e.value.toInt()}')
+        .join(', ');
   }
 
   Future<void> _openPicker(BuildContext context) async {
@@ -58,8 +69,8 @@ class FriendPicker extends StatelessWidget {
 class _AssignmentSheet extends StatefulWidget {
   final List<Friend> friends;
   final int quantity;
-  final Map<String, int> initialAssignments;
-  final ValueChanged<Map<String, int>> onAssignmentsChanged;
+  final Map<String, double> initialAssignments;
+  final ValueChanged<Map<String, double>> onAssignmentsChanged;
   final ValueChanged<String> onAddFriend;
 
   const _AssignmentSheet({
@@ -75,8 +86,13 @@ class _AssignmentSheet extends StatefulWidget {
 }
 
 class _AssignmentSheetState extends State<_AssignmentSheet> {
-  late Map<String, int> _assignments;
+  late Map<String, double> _assignments;
   final _controller = TextEditingController();
+
+  /// A qty-1 item can't be divided into whole units, so it's split by cost
+  /// instead: everyone tapped in shares it evenly, rather than each person
+  /// claiming a specific unit count.
+  bool get _isSharedMode => widget.quantity == 1;
 
   @override
   void initState() {
@@ -90,15 +106,35 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
     super.dispose();
   }
 
-  int get _assignedCount =>
+  double get _assignedCount =>
       _assignments.values.fold(0, (sum, qty) => sum + qty);
 
-  int get _remaining => widget.quantity - _assignedCount;
+  double get _remaining => widget.quantity - _assignedCount;
 
   void _commit() {
     final cleaned = Map.of(_assignments)..removeWhere((_, qty) => qty <= 0);
     widget.onAssignmentsChanged(cleaned);
     setState(() => _assignments = cleaned);
+  }
+
+  void _redistributeEvenly() {
+    if (_assignments.isEmpty) return;
+    final share = widget.quantity / _assignments.length;
+    for (final name in _assignments.keys.toList()) {
+      _assignments[name] = share;
+    }
+  }
+
+  /// Toggles [name]'s membership in the evenly-split group (qty-1 items
+  /// only), then re-splits the item's cost evenly across whoever remains.
+  void _toggleShared(String name) {
+    if (_assignments.containsKey(name)) {
+      _assignments.remove(name);
+    } else {
+      _assignments[name] = 0;
+    }
+    _redistributeEvenly();
+    _commit();
   }
 
   void _increment(String name) {
@@ -119,10 +155,11 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
 
   void _addNewFriend() {
     final name = _controller.text.trim();
-    if (name.isEmpty || _remaining <= 0) return;
+    if (name.isEmpty) return;
+    if (!_isSharedMode && _remaining <= 0) return;
     widget.onAddFriend(name);
     _controller.clear();
-    _increment(name);
+    _isSharedMode ? _toggleShared(name) : _increment(name);
   }
 
   @override
@@ -130,6 +167,7 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
     final assignedNames = _assignments.keys.toSet();
     final otherFriends =
         widget.friends.where((f) => !assignedNames.contains(f.name)).toList();
+    final canAddMore = _isSharedMode || _remaining > 0;
 
     return SafeArea(
       child: Padding(
@@ -144,10 +182,16 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Assign to', style: Theme.of(context).textTheme.titleMedium),
-            if (widget.quantity > 1) ...[
+            if (_isSharedMode && _assignments.length > 1) ...[
               const SizedBox(height: 4),
               Text(
-                '$_remaining of ${widget.quantity} unassigned',
+                'Split evenly among ${_assignments.length} people',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ] else if (!_isSharedMode && widget.quantity > 1) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${_remaining.toInt()} of ${widget.quantity} unassigned',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -157,10 +201,20 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.person_outline),
                 title: Text(entry.key),
-                trailing: widget.quantity == 1
-                    ? IconButton(
-                        icon: const Icon(Icons.person_off_outlined),
-                        onPressed: () => _decrement(entry.key),
+                trailing: _isSharedMode
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_assignments.length > 1)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text('${(entry.value * 100).round()}%'),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.person_off_outlined),
+                            onPressed: () => _toggleShared(entry.key),
+                          ),
+                        ],
                       )
                     : Row(
                         mainAxisSize: MainAxisSize.min,
@@ -169,7 +223,7 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                             icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () => _decrement(entry.key),
                           ),
-                          Text('${entry.value}'),
+                          Text('${entry.value.toInt()}'),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
                             onPressed: _remaining > 0
@@ -186,8 +240,12 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.person_add_alt_outlined),
                 title: Text(friend.name),
-                enabled: _remaining > 0,
-                onTap: _remaining > 0 ? () => _increment(friend.name) : null,
+                enabled: canAddMore,
+                onTap: !canAddMore
+                    ? null
+                    : () => _isSharedMode
+                        ? _toggleShared(friend.name)
+                        : _increment(friend.name),
               ),
             ),
             const Divider(),
@@ -196,7 +254,7 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    enabled: _remaining > 0,
+                    enabled: canAddMore,
                     decoration: const InputDecoration(
                       labelText: 'New friend name',
                     ),
@@ -206,7 +264,7 @@ class _AssignmentSheetState extends State<_AssignmentSheet> {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.add_circle),
-                  onPressed: _remaining > 0 ? _addNewFriend : null,
+                  onPressed: canAddMore ? _addNewFriend : null,
                 ),
               ],
             ),

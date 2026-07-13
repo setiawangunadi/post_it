@@ -41,7 +41,7 @@ class BillShareData {
     this.discount = 0,
   });
 
-  int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
+  double get itemCount => items.fold(0.0, (sum, item) => sum + item.quantity);
 }
 
 class ShareBillCardPage extends StatefulWidget {

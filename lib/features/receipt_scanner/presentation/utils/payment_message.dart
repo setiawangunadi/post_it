@@ -7,6 +7,15 @@ final _amountFormat = NumberFormat.decimalPattern('id')
 
 String formatRupiah(double amount) => _amountFormat.format(amount);
 
+/// Formats an assigned quantity for display — whole units print as "x2",
+/// while a cost-split fraction of a single unit (e.g. one dish shared
+/// between two people) prints as a percentage ("50%") since "x0.5" doesn't
+/// read naturally as "half of one item".
+String formatQty(double qty) {
+  if (qty == qty.roundToDouble()) return 'x${qty.toInt()}';
+  return '${(qty * 100).round()}%';
+}
+
 /// Builds a shareable payment-request message for [friendName], including
 /// the user's saved bank/e-wallet details (if any) so the recipient knows
 /// where to send money.
